@@ -35,6 +35,11 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             return new SpawnReasonScope(previous);
         }
 
+        public bool HasConstraintTelemetrySubscribers
+        {
+            get { return _events.HasSubscribers<ConstraintTelemetryCapturedEvent>(); }
+        }
+
         public void PublishVehicleAdded(Car car)
         {
             if (!TryCreateVehicleId(car, out var vehicleId))
@@ -91,9 +96,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
                 return;
             }
 
-            var snapshot = new float[deltaSeparationMeters.Length];
-            Array.Copy(deltaSeparationMeters, snapshot, deltaSeparationMeters.Length);
-            _events.Publish(new ConstraintTelemetryCapturedEvent(integrationSet, deltaTimeSeconds, snapshot));
+            _events.Publish(new ConstraintTelemetryCapturedEvent(integrationSet, deltaTimeSeconds, deltaSeparationMeters));
         }
 
         public void PublishTrainBrakeDisplayAvailable(TrainBrakeDisplay display)

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Ca.Jwsm.Railroader.Api.Abstractions.Events;
 
 namespace Ca.Jwsm.Railroader.Api.Core.Events
@@ -8,6 +7,7 @@ namespace Ca.Jwsm.Railroader.Api.Core.Events
     public sealed class EventBus : IEventBus
     {
         private readonly Dictionary<Type, List<Action<object>>> _handlers = new Dictionary<Type, List<Action<object>>>();
+        private readonly Dictionary<Type, Action<object>[]> _snapshots = new Dictionary<Type, Action<object>[]>();
         private readonly object _sync = new object();
 
         public IEventSubscription Subscribe<TEvent>(Action<TEvent> handler) where TEvent : class
@@ -28,9 +28,18 @@ namespace Ca.Jwsm.Railroader.Api.Core.Events
                 }
 
                 handlers.Add(wrapper);
+                _snapshots[typeof(TEvent)] = handlers.ToArray();
             }
 
             return new Subscription(() => Unsubscribe(typeof(TEvent), wrapper));
+        }
+
+        public bool HasSubscribers<TEvent>() where TEvent : class
+        {
+            lock (_sync)
+            {
+                return _snapshots.TryGetValue(typeof(TEvent), out var handlers) && handlers.Length > 0;
+            }
         }
 
         public void Publish<TEvent>(TEvent eventInstance) where TEvent : class
@@ -40,21 +49,19 @@ namespace Ca.Jwsm.Railroader.Api.Core.Events
                 throw new ArgumentNullException(nameof(eventInstance));
             }
 
-            List<Action<object>> handlers;
+            Action<object>[] handlers;
 
             lock (_sync)
             {
-                if (!_handlers.TryGetValue(typeof(TEvent), out var registeredHandlers))
+                if (!_snapshots.TryGetValue(typeof(TEvent), out handlers) || handlers.Length == 0)
                 {
                     return;
                 }
-
-                handlers = registeredHandlers.ToList();
             }
 
-            foreach (var handler in handlers)
+            for (int i = 0; i < handlers.Length; i++)
             {
-                handler(eventInstance);
+                handlers[i](eventInstance);
             }
         }
 
@@ -72,6 +79,11 @@ namespace Ca.Jwsm.Railroader.Api.Core.Events
                 if (handlers.Count == 0)
                 {
                     _handlers.Remove(eventType);
+                    _snapshots.Remove(eventType);
+                }
+                else
+                {
+                    _snapshots[eventType] = handlers.ToArray();
                 }
             }
         }

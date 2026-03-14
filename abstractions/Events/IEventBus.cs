@@ -6,6 +6,8 @@ namespace Ca.Jwsm.Railroader.Api.Abstractions.Events
     {
         IEventSubscription Subscribe<TEvent>(Action<TEvent> handler) where TEvent : class;
 
+        bool HasSubscribers<TEvent>() where TEvent : class;
+
         void Publish<TEvent>(TEvent eventInstance) where TEvent : class;
     }
 }

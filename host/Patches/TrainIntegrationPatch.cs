@@ -95,15 +95,14 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         {
             public float[] PositionsBefore;
             public float[] RadiiBefore;
-            public float[] AccumulatedDeltaSeparation;
             public int IterationsThisTick;
             public int LastAccumulatedFrame = -1;
+            public bool PublishedThisTick;
         }
 
         private static readonly ConditionalWeakTable<IntegrationSet, IterationState> States = new ConditionalWeakTable<IntegrationSet, IterationState>();
         private static readonly Dictionary<Type, FieldInfo> ElementsFieldCache = new Dictionary<Type, FieldInfo>();
-        private static readonly Dictionary<string, FieldInfo> FieldCache = new Dictionary<string, FieldInfo>();
-        private static readonly Dictionary<string, PropertyInfo> PropertyCache = new Dictionary<string, PropertyInfo>();
+        private static readonly Dictionary<Type, ElementAccessor> ElementAccessorCache = new Dictionary<Type, ElementAccessor>();
 
         static IEnumerable<MethodBase> TargetMethods()
         {
@@ -119,6 +118,12 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         {
             try
             {
+                var service = TrainIntegrationState.Service;
+                if (service == null || !service.HasConstraintTelemetrySubscribers)
+                {
+                    return;
+                }
+
                 var elements = GetElementsArray(__instance);
                 if (elements == null || elements.Length < 2)
                 {
@@ -127,13 +132,14 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
 
                 int count = elements.Length;
                 var state = States.GetOrCreateValue(__instance);
-                if (state.LastAccumulatedFrame != UnityEngine.Time.frameCount)
+                if (state.LastAccumulatedFrame == UnityEngine.Time.frameCount)
                 {
-                    state.LastAccumulatedFrame = UnityEngine.Time.frameCount;
-                    state.IterationsThisTick = 0;
-                    EnsureArray(ref state.AccumulatedDeltaSeparation, count - 1);
-                    Array.Clear(state.AccumulatedDeltaSeparation, 0, count - 1);
+                    return;
                 }
+
+                state.LastAccumulatedFrame = UnityEngine.Time.frameCount;
+                state.IterationsThisTick = 0;
+                state.PublishedThisTick = false;
 
                 EnsureArray(ref state.PositionsBefore, count);
                 EnsureArray(ref state.RadiiBefore, count);
@@ -141,9 +147,9 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                 for (int i = 0; i < count; i++)
                 {
                     object element = elements.GetValue(i);
-                    state.PositionsBefore[i] = GetFloat(element, "position");
-                    float radius = GetFloat(element, "CarRadius");
-                    state.RadiiBefore[i] = Math.Abs(radius) > 1e-6f ? radius : GetFloat(element, "radius");
+                    var accessor = GetAccessor(element);
+                    state.PositionsBefore[i] = accessor.GetPosition(element);
+                    state.RadiiBefore[i] = accessor.GetRadius(element);
                 }
             }
             catch
@@ -156,6 +162,12 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         {
             try
             {
+                var service = TrainIntegrationState.Service;
+                if (service == null || !service.HasConstraintTelemetrySubscribers)
+                {
+                    return;
+                }
+
                 if (wholeDeltaTime <= 1e-6f)
                 {
                     return;
@@ -170,44 +182,35 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                 IterationState state;
                 if (!States.TryGetValue(__instance, out state)
                     || state.PositionsBefore == null
-                    || state.RadiiBefore == null
-                    || state.AccumulatedDeltaSeparation == null)
+                    || state.RadiiBefore == null)
                 {
                     return;
                 }
 
                 int linkCount = elements.Length - 1;
+                state.IterationsThisTick++;
+                if (state.PublishedThisTick || state.IterationsThisTick < 4)
+                {
+                    return;
+                }
+
+                state.PublishedThisTick = true;
+                var deltaSeparation = new float[linkCount];
                 for (int i = 0; i < linkCount; i++)
                 {
-                    float separationBefore = state.PositionsBefore[i + 1] - state.RadiiBefore[i + 1]
-                        - (state.PositionsBefore[i] + state.RadiiBefore[i]);
-
                     object firstElement = elements.GetValue(i);
                     object secondElement = elements.GetValue(i + 1);
+                    var firstAccessor = GetAccessor(firstElement);
+                    var secondAccessor = GetAccessor(secondElement);
 
-                    float firstPosition = GetFloat(firstElement, "position");
-                    float firstRadius = GetFloat(firstElement, "CarRadius");
-                    if (Math.Abs(firstRadius) < 1e-6f)
-                    {
-                        firstRadius = GetFloat(firstElement, "radius");
-                    }
-
-                    float secondPosition = GetFloat(secondElement, "position");
-                    float secondRadius = GetFloat(secondElement, "CarRadius");
-                    if (Math.Abs(secondRadius) < 1e-6f)
-                    {
-                        secondRadius = GetFloat(secondElement, "radius");
-                    }
-
-                    float separationAfter = secondPosition - secondRadius - (firstPosition + firstRadius);
-                    state.AccumulatedDeltaSeparation[i] += separationAfter - separationBefore;
+                    float separationBefore = state.PositionsBefore[i + 1] - state.RadiiBefore[i + 1]
+                        - (state.PositionsBefore[i] + state.RadiiBefore[i]);
+                    float separationAfter = secondAccessor.GetPosition(secondElement) - secondAccessor.GetRadius(secondElement)
+                        - (firstAccessor.GetPosition(firstElement) + firstAccessor.GetRadius(firstElement));
+                    deltaSeparation[i] = separationAfter - separationBefore;
                 }
 
-                state.IterationsThisTick++;
-                if (state.IterationsThisTick >= 4)
-                {
-                    TrainIntegrationState.Service?.PublishConstraintTelemetry(__instance, wholeDeltaTime, state.AccumulatedDeltaSeparation);
-                }
+                service.PublishConstraintTelemetry(__instance, wholeDeltaTime, deltaSeparation);
             }
             catch
             {
@@ -235,50 +238,83 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             }
         }
 
-        private static float GetFloat(object target, string name)
+        private static ElementAccessor GetAccessor(object target)
         {
-            if (target == null)
+            var type = target.GetType();
+            lock (ElementAccessorCache)
             {
+                if (!ElementAccessorCache.TryGetValue(type, out var accessor))
+                {
+                    accessor = new ElementAccessor(type);
+                    ElementAccessorCache[type] = accessor;
+                }
+
+                return accessor;
+            }
+        }
+
+        private sealed class ElementAccessor
+        {
+            private readonly FieldInfo _positionField;
+            private readonly PropertyInfo _positionProperty;
+            private readonly FieldInfo _carRadiusField;
+            private readonly PropertyInfo _carRadiusProperty;
+            private readonly FieldInfo _radiusField;
+            private readonly PropertyInfo _radiusProperty;
+
+            public ElementAccessor(Type type)
+            {
+                _positionField = AccessTools.Field(type, "position");
+                _positionProperty = AccessTools.Property(type, "position");
+                _carRadiusField = AccessTools.Field(type, "CarRadius");
+                _carRadiusProperty = AccessTools.Property(type, "CarRadius");
+                _radiusField = AccessTools.Field(type, "radius");
+                _radiusProperty = AccessTools.Property(type, "radius");
+            }
+
+            public float GetPosition(object target)
+            {
+                return GetValue(_positionField, _positionProperty, target);
+            }
+
+            public float GetRadius(object target)
+            {
+                float radius = GetValue(_carRadiusField, _carRadiusProperty, target);
+                return Math.Abs(radius) > 1e-6f ? radius : GetValue(_radiusField, _radiusProperty, target);
+            }
+
+            private static float GetValue(FieldInfo field, PropertyInfo property, object target)
+            {
+                if (field != null)
+                {
+                    var fieldValue = field.GetValue(target);
+                    if (fieldValue is float singleField)
+                    {
+                        return singleField;
+                    }
+
+                    if (fieldValue is double doubleField)
+                    {
+                        return (float)doubleField;
+                    }
+                }
+
+                if (property != null)
+                {
+                    var propertyValue = property.GetValue(target, null);
+                    if (propertyValue is float singleProperty)
+                    {
+                        return singleProperty;
+                    }
+
+                    if (propertyValue is double doubleProperty)
+                    {
+                        return (float)doubleProperty;
+                    }
+                }
+
                 return 0f;
             }
-
-            var type = target.GetType();
-            string key = type.FullName + "|" + name;
-
-            FieldInfo fieldInfo;
-            if (!FieldCache.TryGetValue(key, out fieldInfo))
-            {
-                fieldInfo = AccessTools.Field(type, name);
-                FieldCache[key] = fieldInfo;
-            }
-
-            if (fieldInfo != null && fieldInfo.GetValue(target) is float fieldValue)
-            {
-                return fieldValue;
-            }
-
-            PropertyInfo propertyInfo;
-            if (!PropertyCache.TryGetValue(key, out propertyInfo))
-            {
-                propertyInfo = AccessTools.Property(type, name);
-                PropertyCache[key] = propertyInfo;
-            }
-
-            if (propertyInfo != null)
-            {
-                var value = propertyInfo.GetValue(target, null);
-                if (value is float floatValue)
-                {
-                    return floatValue;
-                }
-
-                if (value is double doubleValue)
-                {
-                    return (float)doubleValue;
-                }
-            }
-
-            return 0f;
         }
     }
 

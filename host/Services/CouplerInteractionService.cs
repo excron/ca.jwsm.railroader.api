@@ -9,6 +9,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
     public sealed class CouplerInteractionService : ICouplerInteractionService
     {
         private readonly List<ICouplerInteractionProvider> _providers = new List<ICouplerInteractionProvider>();
+        private ICouplerInteractionProvider[] _snapshot = new ICouplerInteractionProvider[0];
         private readonly object _sync = new object();
 
         public IEventSubscription Register(ICouplerInteractionProvider provider)
@@ -26,6 +27,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
                 }
 
                 _providers.Add(provider);
+                _snapshot = _providers.ToArray();
             }
 
             return new Subscription(() => Unregister(provider));
@@ -61,7 +63,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
         {
             lock (_sync)
             {
-                return _providers.ToArray();
+                return _snapshot;
             }
         }
 
@@ -70,6 +72,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             lock (_sync)
             {
                 _providers.Remove(provider);
+                _snapshot = _providers.Count == 0 ? new ICouplerInteractionProvider[0] : _providers.ToArray();
             }
         }
 
