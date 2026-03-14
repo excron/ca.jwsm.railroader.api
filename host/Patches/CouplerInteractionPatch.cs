@@ -102,7 +102,9 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             context = new CouplerInteractionContext(
                 new CouplerEndId(new VehicleId(car.id), endName),
                 isFront,
-                car.DisplayName ?? car.id);
+                car.DisplayName ?? car.id,
+                car,
+                logicalEnd.ToString());
             return true;
         }
 
