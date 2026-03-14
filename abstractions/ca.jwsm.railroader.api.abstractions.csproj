@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\build\Directory.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>ca.jwsm.railroader.api.abstractions</AssemblyName>
+    <RootNamespace>Ca.Jwsm.Railroader.Api.Abstractions</RootNamespace>
+  </PropertyGroup>
+</Project>

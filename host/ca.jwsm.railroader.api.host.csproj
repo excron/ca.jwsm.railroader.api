@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\build\Directory.Build.props" />
+
+  <PropertyGroup>
+    <AssemblyName>ca.jwsm.railroader.api.host</AssemblyName>
+    <RootNamespace>Ca.Jwsm.Railroader.Api.Host</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GameDirFallback Condition="'$(GameDirFallback)'==''">C:\Program Files (x86)\Steam\steamapps\common\Railroader</GameDirFallback>
+    <GameDir Condition="'$(GAME_DIR)'!=''">$(GAME_DIR)</GameDir>
+    <GameDir Condition="'$(GAME_DIR)'=='' and '$(GameDir)'==''">$(GameDirFallback)</GameDir>
+    <ManagedDir>$(GameDir)\Railroader_Data\Managed</ManagedDir>
+    <UmmDir>$(ManagedDir)\UnityModManager</UmmDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityModManager">
+      <HintPath>$(UmmDir)\UnityModManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(UmmDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ManagedDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(ManagedDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedDir)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\abstractions\ca.jwsm.railroader.api.abstractions.csproj" />
+    <ProjectReference Include="..\core\ca.jwsm.railroader.api.core.csproj" />
+    <ProjectReference Include="..\ui\ca.jwsm.railroader.api.ui.csproj" />
+    <ProjectReference Include="..\trains\ca.jwsm.railroader.api.trains.csproj" />
+    <ProjectReference Include="..\orders\ca.jwsm.railroader.api.orders.csproj" />
+    <ProjectReference Include="..\persistence\ca.jwsm.railroader.api.persistence.csproj" />
+  </ItemGroup>
+</Project>
