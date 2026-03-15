@@ -80,6 +80,8 @@ For v1, this project now starts carrying real host-owned Railroader adaptation f
 - coupling attempt interception
 - solver telemetry publication
 - brake-display discovery events
+- world layout lifecycle and early apply timing
+- external world asset-store registration and base-path resolution
 
 ### `ui`
 
@@ -169,9 +171,8 @@ Included in this scaffold:
 Deferred for later:
 
 - real Railroader integration
-- Harmony patches
 - native object adaptation
-- telemetry, world, routing, ops, gameplay, and multiplayer domains
+- telemetry, routing, ops, gameplay, and multiplayer domains
 - backward compatibility shims
 - CI, packaging, and installer concerns
 
@@ -187,7 +188,7 @@ The initial public surface focuses on:
 Additional domains can be added later once the host integration layer and public contracts prove stable:
 
 - telemetry
-- world/state
+- richer world/state public domains
 - routing
 - operations
 - gameplay systems
@@ -206,3 +207,5 @@ The current `persistence` surface now also starts the first Coupler Forces-drive
 The current `trains` and `ui` event surfaces now also start the first game-ready Coupler Forces host path: the host publishes vehicle lifecycle, coupling attempt, constraint telemetry, and brake-display availability so the mod can consume shared events instead of owning those Harmony patches itself.
 
 The `trains` surface now also includes a small coupler interaction provider contract so the host can own `CouplerPickable` patching while consumer mods contribute tooltip and menu behavior through the API.
+
+The current `abstractions/World` and `host` surfaces now also start the first real map/runtime migration path: the host owns early world apply timing plus external asset-store hooks, while consumer mods can submit world layout documents and `/MapMods`-backed asset-store registrations into the host. This is the start of a neutral map/world backend, but it is not yet a complete public map-mod API.

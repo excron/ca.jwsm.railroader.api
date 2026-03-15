@@ -1,4 +1,5 @@
 using Ca.Jwsm.Railroader.Api.Abstractions.Api;
+using Ca.Jwsm.Railroader.Api.Abstractions.World.Contracts;
 using Ca.Jwsm.Railroader.Api.Host.Bootstrap;
 using UnityModManagerNet;
 
@@ -27,8 +28,14 @@ namespace Ca.Jwsm.Railroader.Api.Host
 
         public static bool Load(UnityModManager.ModEntry entry)
         {
-            _ = entry;
-            Initialize();
+            var host = Initialize();
+            entry.OnUpdate = (_, __) =>
+            {
+                if (host.Services.TryGet<IWorldLayoutService>(out var worldLayout))
+                {
+                    worldLayout.Tick();
+                }
+            };
             return true;
         }
     }

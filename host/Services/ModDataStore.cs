@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using Ca.Jwsm.Railroader.Api.Persistence.Contracts;
 using Ca.Jwsm.Railroader.Api.Persistence.Models;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Ca.Jwsm.Railroader.Api.Host.Services
@@ -39,6 +40,23 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             string path = GetPath(ownerId, scope, key);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllText(path, json ?? string.Empty, Encoding.UTF8);
+        }
+
+        public bool TryLoad<T>(string ownerId, ModDataScope scope, ModDataKey key, out T value)
+        {
+            if (!TryLoadJson(ownerId, scope, key, out var json) || string.IsNullOrWhiteSpace(json))
+            {
+                value = default(T);
+                return false;
+            }
+
+            value = JsonConvert.DeserializeObject<T>(json);
+            return value != null;
+        }
+
+        public void Save<T>(string ownerId, ModDataScope scope, ModDataKey key, T value)
+        {
+            SaveJson(ownerId, scope, key, JsonConvert.SerializeObject(value));
         }
 
         private string GetPath(string ownerId, ModDataScope scope, ModDataKey key)

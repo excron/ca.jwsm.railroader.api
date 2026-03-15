@@ -10,3 +10,4 @@ obj/
 *.pdb
 
 build/appdata/
+build/_tmp/

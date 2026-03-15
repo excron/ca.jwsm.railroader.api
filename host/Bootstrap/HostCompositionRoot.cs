@@ -10,6 +10,7 @@ using Ca.Jwsm.Railroader.Api.Orders.Contracts;
 using Ca.Jwsm.Railroader.Api.Persistence.Contracts;
 using Ca.Jwsm.Railroader.Api.Trains.Contracts;
 using Ca.Jwsm.Railroader.Api.Ui.Contracts;
+using Ca.Jwsm.Railroader.Api.Abstractions.World.Contracts;
 
 namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
 {
@@ -36,6 +37,8 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             var modDataStore = new ModDataStore(saveContext);
             var trainIntegration = new TrainIntegrationService(events);
             var couplerInteractions = new CouplerInteractionService();
+            var worldLayout = new WorldLayoutService();
+            var worldAssetStores = new WorldAssetStoreService();
 
             services.Register<IServiceRegistry>(services);
             services.Register<ICapabilityService>(capabilities);
@@ -57,6 +60,8 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             services.Register<ISaveContextService>(saveContext);
             services.Register<ISaveLifecycleService>(saveContext);
             services.Register<IModDataStore>(modDataStore);
+            services.Register<IWorldLayoutService>(worldLayout);
+            services.Register<IWorldAssetStoreService>(worldAssetStores);
 
             var host = new ApiHost(
                 new ApiVersion(1, 0, 0),
@@ -69,6 +74,8 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             Host.Patches.SaveLifecycle.Service = saveContext;
             Host.Patches.TrainIntegrationState.Service = trainIntegration;
             Host.Patches.CouplerInteractionState.Service = couplerInteractions;
+            Host.Patches.WorldLifecycleState.Service = worldLayout;
+            Host.Patches.WorldAssetStoreState.Service = worldAssetStores;
 
             return host;
         }
