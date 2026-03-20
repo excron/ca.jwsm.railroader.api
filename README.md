@@ -15,7 +15,7 @@ This repository is no longer just a scaffold. It now contains a working host use
 The installed host mod currently provides:
 
 - save context and save lifecycle events
-- mod-scoped save data storage
+- mod-scoped save data storage, including formatted JSON persistence for consumer payloads
 - train and vehicle lifecycle events
 - coupling-attempt interception
 - solver constraint telemetry publication
@@ -176,6 +176,7 @@ Recent hardening work also tightened the host boundary:
 - the host no longer encodes Coupler Forces-specific menu action semantics
 - the repair facility seam now publishes generic repair estimates instead of forcing consumer mods to reflect `RepairTrack` internals
 - save deletion now clears current save context when the deleted save was active
+- consumer persistence now runs through the API store only, instead of mods carrying their own fallback save pipeline
 
 It is still intentionally incomplete as a total modding platform. Some domains remain migration-stage or consumer-owned:
 

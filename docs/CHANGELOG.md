@@ -13,3 +13,4 @@ This release continues the first real API-host migration pass and tightens host 
 - Refined coupler menu ownership so the API host maps generic menu slots/icons, not mod-specific `Repair` / `Replace` behavior.
 - Added generic `RepairWorkEstimate` publication so consumer mods can apply repair-facility effects without reflecting `RepairTrack` internals themselves.
 - Cleared current save context when an active save is deleted so consumer persistence does not recreate deleted save data on shutdown.
+- The generic mod-data store now writes indented JSON so consumer persistence files stay readable.

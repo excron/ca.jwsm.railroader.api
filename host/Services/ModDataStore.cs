@@ -56,7 +56,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
 
         public void Save<T>(string ownerId, ModDataScope scope, ModDataKey key, T value)
         {
-            SaveJson(ownerId, scope, key, JsonConvert.SerializeObject(value));
+            SaveJson(ownerId, scope, key, JsonConvert.SerializeObject(value, Formatting.Indented));
         }
 
         public void Delete(string ownerId, ModDataScope scope, ModDataKey key, string scopeId = null)
