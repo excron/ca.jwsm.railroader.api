@@ -22,6 +22,7 @@ The installed host mod currently provides:
 - brake-display discovery events
 - coupler tooltip and context-menu provider hooks
 - generic coupler menu slot/icon presentation mapping for consumer-provided actions
+- generic screen-level overlay text panel hosting for debug or lightweight status displays
 - vanilla wear/tear state publication
 - repair-track repair progress/work publication, including generic repair-work estimation for consumers
 - world layout submission and early-apply timing
@@ -177,6 +178,7 @@ Recent hardening work also tightened the host boundary:
 - the repair facility seam now publishes generic repair estimates instead of forcing consumer mods to reflect `RepairTrack` internals
 - save deletion now clears current save context when the deleted save was active
 - consumer persistence now runs through the API store only, instead of mods carrying their own fallback save pipeline
+- save-scoped mod data no longer falls back to a synthetic `default` save id when no real save context exists
 
 It is still intentionally incomplete as a total modding platform. Some domains remain migration-stage or consumer-owned:
 

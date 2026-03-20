@@ -24,7 +24,12 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
 
         public bool TryLoadJson(string ownerId, ModDataScope scope, ModDataKey key, out string json)
         {
-            string path = GetPath(ownerId, scope, key);
+            if (!TryGetPath(ownerId, scope, key, out var path))
+            {
+                json = null;
+                return false;
+            }
+
             if (!File.Exists(path))
             {
                 json = null;
@@ -37,7 +42,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
 
         public void SaveJson(string ownerId, ModDataScope scope, ModDataKey key, string json)
         {
-            string path = GetPath(ownerId, scope, key);
+            string path = GetRequiredPath(ownerId, scope, key);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllText(path, json ?? string.Empty, Encoding.UTF8);
         }
@@ -61,7 +66,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
 
         public void Delete(string ownerId, ModDataScope scope, ModDataKey key, string scopeId = null)
         {
-            string path = GetPath(ownerId, scope, key, scopeId);
+            string path = GetRequiredPath(ownerId, scope, key, scopeId);
             if (File.Exists(path))
             {
                 File.Delete(path);
@@ -71,7 +76,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             DeleteEmptyDirectoryChain(Path.GetDirectoryName(path), root);
         }
 
-        private string GetPath(string ownerId, ModDataScope scope, ModDataKey key, string scopeId = null)
+        private string GetRequiredPath(string ownerId, ModDataScope scope, ModDataKey key, string scopeId = null)
+        {
+            if (!TryGetPath(ownerId, scope, key, out var path, scopeId))
+            {
+                throw new InvalidOperationException("Save-scoped mod data requires an active save context or an explicit scope id.");
+            }
+
+            return path;
+        }
+
+        private bool TryGetPath(string ownerId, ModDataScope scope, ModDataKey key, out string path, string scopeId = null)
         {
             if (string.IsNullOrWhiteSpace(ownerId))
             {
@@ -82,17 +97,30 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             switch (scope)
             {
                 case ModDataScope.Global:
-                    return Path.Combine(root, "global", Sanitize(key.Value) + ".json");
+                    path = Path.Combine(root, "global", Sanitize(key.Value) + ".json");
+                    return true;
                 case ModDataScope.Save:
                     string saveId = !string.IsNullOrWhiteSpace(scopeId)
                         ? scopeId
-                        : (_saveContext.TryGetCurrent(out var context) && !string.IsNullOrWhiteSpace(context.SaveId)
-                            ? context.SaveId
-                            : "default");
-                    return Path.Combine(root, "saves", Sanitize(saveId), Sanitize(key.Value) + ".json");
+                        : TryResolveCurrentSaveId();
+                    if (string.IsNullOrWhiteSpace(saveId))
+                    {
+                        path = string.Empty;
+                        return false;
+                    }
+
+                    path = Path.Combine(root, "saves", Sanitize(saveId), Sanitize(key.Value) + ".json");
+                    return true;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(scope));
             }
+        }
+
+        private string TryResolveCurrentSaveId()
+        {
+            return _saveContext.TryGetCurrent(out var context) && !string.IsNullOrWhiteSpace(context.SaveId)
+                ? context.SaveId
+                : string.Empty;
         }
 
         private static string Sanitize(string value)

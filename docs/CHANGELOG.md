@@ -14,3 +14,5 @@ This release continues the first real API-host migration pass and tightens host 
 - Added generic `RepairWorkEstimate` publication so consumer mods can apply repair-facility effects without reflecting `RepairTrack` internals themselves.
 - Cleared current save context when an active save is deleted so consumer persistence does not recreate deleted save data on shutdown.
 - The generic mod-data store now writes indented JSON so consumer persistence files stay readable.
+- Added a generic API-owned overlay text panel service/renderer for lightweight debug or status displays outside mod-owned HUD trees.
+- Save-scoped API mod data no longer falls back to a synthetic `default` save id when no real save context exists.

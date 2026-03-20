@@ -29,6 +29,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             var hud = new HudService();
             var hudContext = new HudContextService();
             var notifications = new NotificationService();
+            var overlayText = new OverlayTextService();
             var controlContext = new ControlContextService();
             var controlRequests = new ControlRequestService();
             var consistTopology = new ConsistTopologyService();
@@ -52,6 +53,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             services.Register<IHudService>(hud);
             services.Register<IHudContextService>(hudContext);
             services.Register<INotificationService>(notifications);
+            services.Register<IOverlayTextService>(overlayText);
             services.Register<IControlContextService>(controlContext);
             services.Register<IControlRequestService>(controlRequests);
             services.Register<IConsistTopologyService>(consistTopology);

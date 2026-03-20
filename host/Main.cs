@@ -3,7 +3,9 @@ using Ca.Jwsm.Railroader.Api.Abstractions.World.Contracts;
 using Ca.Jwsm.Railroader.Api.Host.Bootstrap;
 using Ca.Jwsm.Railroader.Api.Host.Diagnostics;
 using Ca.Jwsm.Railroader.Api.Host.Services;
+using Ca.Jwsm.Railroader.Api.Host.UI;
 using Ca.Jwsm.Railroader.Api.Trains.Contracts;
+using Ca.Jwsm.Railroader.Api.Ui.Contracts;
 using UnityModManagerNet;
 
 namespace Ca.Jwsm.Railroader.Api.Host
@@ -12,6 +14,7 @@ namespace Ca.Jwsm.Railroader.Api.Host
     {
         private static IApiHost _current;
         private static HostBootstrapper _bootstrapper;
+        private static OverlayTextPanelRenderer _overlayTextRenderer;
 
         public static IApiHost Current
         {
@@ -34,6 +37,11 @@ namespace Ca.Jwsm.Railroader.Api.Host
         public static bool Load(UnityModManager.ModEntry entry)
         {
             var host = Initialize();
+            if (host.Services.TryGet<IOverlayTextService>(out var overlayText))
+            {
+                _overlayTextRenderer = OverlayTextPanelRenderer.EnsureCreated(overlayText);
+            }
+
             entry.OnUpdate = (_, __) =>
             {
                 if (host.Services.TryGet<WearFeatureService>(out var wearFeatures))
@@ -91,6 +99,8 @@ namespace Ca.Jwsm.Railroader.Api.Host
             {
             }
 
+            OverlayTextPanelRenderer.DestroyExisting();
+            _overlayTextRenderer = null;
             _bootstrapper = null;
             _current = null;
         }
