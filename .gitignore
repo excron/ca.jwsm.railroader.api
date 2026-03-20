@@ -8,6 +8,7 @@ obj/
 *.suo
 *.cache
 *.pdb
+*.zip
 
 build/appdata/
 build/_tmp/
