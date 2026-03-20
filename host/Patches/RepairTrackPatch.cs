@@ -1,5 +1,6 @@
 using Ca.Jwsm.Railroader.Api.Host.Services;
 using Ca.Jwsm.Railroader.Api.Host.Diagnostics;
+using Ca.Jwsm.Railroader.Api.Trains.Models;
 using HarmonyLib;
 using Model;
 using Model.Ops;
@@ -8,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace Ca.Jwsm.Railroader.Api.Host.Patches
 {
@@ -56,6 +58,9 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
     [HarmonyPatch(typeof(RepairTrack), nameof(RepairTrack.Service))]
     internal static class RepairTrackServicePatch
     {
+        private static readonly MethodInfo RepairTrackCalculateRepairStepMethod = AccessTools.Method(typeof(RepairTrack), "CalculateRepairStep");
+        private static readonly MethodInfo RepairTrackEquipmentRepairSpeedMethod = AccessTools.Method(typeof(RepairTrack), "EquipmentRepairSpeed");
+        private static readonly MethodInfo CarArchetypeGetter = AccessTools.PropertyGetter(typeof(Car), "Archetype");
         private static readonly MethodInfo EffectiveRepairPerDayPerCarMethod = AccessTools.Method(typeof(RepairTrack), "EffectiveRepairPerDayPerCar");
         private static readonly MethodInfo EnumerateCarsActualMethod = AccessTools.Method(typeof(RepairTrack), "EnumerateCarsActual");
         private static readonly MethodInfo NeedsRepairMethod = AccessTools.Method(typeof(RepairTrack), "NeedsRepair");
@@ -86,7 +91,13 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                         continue;
                     }
 
-                    service.PublishVehicleRepairWorkAvailable(car, repairWorkAvailable);
+                    var repairEstimate = CreateRepairEstimate(car, repairWorkAvailable);
+                    if (repairEstimate == null)
+                    {
+                        continue;
+                    }
+
+                    service.PublishVehicleRepairWorkAvailable(car, repairEstimate);
                 }
 
                 RepeatedLogCoalescer.Flush("repair-track-service-postfix");
@@ -118,6 +129,65 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
 
                 object rateValue = RateToValueMethod.Invoke(null, new object[] { repairPerDay, ctx.DeltaTime });
                 return rateValue is float repairWorkUnits ? repairWorkUnits : 0f;
+            }
+            catch
+            {
+                return 0f;
+            }
+        }
+
+        private static RepairWorkEstimate CreateRepairEstimate(Car car, float repairWorkUnitsAvailable)
+        {
+            if (car == null || repairWorkUnitsAvailable <= 1e-6f)
+            {
+                return null;
+            }
+
+            return new RepairWorkEstimate(
+                repairWorkUnitsAvailable,
+                currentCondition => EstimateConditionDelta(car, currentCondition, repairWorkUnitsAvailable));
+        }
+
+        private static float EstimateConditionDelta(Car car, float currentCondition, float repairWorkUnitsAvailable)
+        {
+            if (car == null
+                || repairWorkUnitsAvailable <= 1e-6f
+                || RepairTrackCalculateRepairStepMethod == null
+                || RepairTrackEquipmentRepairSpeedMethod == null)
+            {
+                return 0f;
+            }
+
+            try
+            {
+                float repairSpeed = RepairTrackEquipmentRepairSpeedMethod.Invoke(null, new object[] { car }) is float speed
+                    ? speed
+                    : 0f;
+                if (repairSpeed <= 1e-6f)
+                {
+                    return 0f;
+                }
+
+                object archetype = CarArchetypeGetter?.Invoke(car, null);
+                if (archetype == null)
+                {
+                    return 0f;
+                }
+
+                object[] args =
+                {
+                    Mathf.Clamp01(currentCondition),
+                    repairWorkUnitsAvailable,
+                    1f,
+                    repairSpeed,
+                    archetype,
+                    0f,
+                    0f
+                };
+
+                RepairTrackCalculateRepairStepMethod.Invoke(null, args);
+                float resultingCondition = args[5] is float result ? result : Mathf.Clamp01(currentCondition);
+                return Mathf.Max(0f, resultingCondition - Mathf.Clamp01(currentCondition));
             }
             catch
             {

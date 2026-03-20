@@ -130,9 +130,9 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
                 car));
         }
 
-        public void PublishVehicleRepairWorkAvailable(Car car, float repairWorkUnitsAvailable)
+        public void PublishVehicleRepairWorkAvailable(Car car, RepairWorkEstimate repairEstimate)
         {
-            if (!TryCreateVehicleId(car, out var vehicleId) || repairWorkUnitsAvailable <= 1e-6f)
+            if (!TryCreateVehicleId(car, out var vehicleId) || repairEstimate == null || repairEstimate.RepairWorkUnitsAvailable <= 1e-6f)
             {
                 return;
             }
@@ -140,7 +140,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             _events.Publish(new VehicleRepairWorkAvailableEvent(
                 vehicleId,
                 car.DisplayName ?? vehicleId.Value,
-                repairWorkUnitsAvailable,
+                repairEstimate,
                 car));
         }
 

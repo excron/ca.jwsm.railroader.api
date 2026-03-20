@@ -63,33 +63,18 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         }
     }
 
-    [HarmonyPatch]
-    internal static class ScriptWorldPlaceTrainSpawnReasonPatch
+[HarmonyPatch]
+internal static class ScriptWorldPlaceTrainSpawnReasonPatch
+{
+    static MethodBase TargetMethod()
     {
-        static IEnumerable<MethodBase> TargetMethods()
-        {
-            var type = AccessTools.TypeByName("Game.Scripting.ScriptWorld");
-            if (type == null)
-            {
-                yield break;
-            }
+        var type = AccessTools.TypeByName("Game.Scripting.ScriptWorld");
+        return type == null ? null : AccessTools.Method(type, "place_train");
+    }
 
-            var placeTrain = AccessTools.Method(type, "place_train");
-            if (placeTrain != null)
-            {
-                yield return placeTrain;
-            }
-
-            var placeTrainAtInterchange = AccessTools.Method(type, "place_train_at_interchange");
-            if (placeTrainAtInterchange != null)
-            {
-                yield return placeTrainAtInterchange;
-            }
-        }
-
-        [HarmonyPrefix]
-        private static void Prefix(out IDisposable __state)
-        {
+    [HarmonyPrefix]
+    private static void Prefix(out IDisposable __state)
+    {
             __state = TrainIntegrationState.Service == null
                 ? null
                 : TrainIntegrationState.Service.PushSpawnReason(VehicleSpawnReason.PurchasedNew);
@@ -97,11 +82,36 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
 
         [HarmonyFinalizer]
         private static Exception Finalizer(Exception __exception, IDisposable __state)
-        {
-            __state?.Dispose();
-            return __exception;
-        }
+    {
+        __state?.Dispose();
+        return __exception;
     }
+}
+
+[HarmonyPatch]
+internal static class ScriptWorldPlaceTrainAtInterchangeSpawnReasonPatch
+{
+    static MethodBase TargetMethod()
+    {
+        var type = AccessTools.TypeByName("Game.Scripting.ScriptWorld");
+        return type == null ? null : AccessTools.Method(type, "place_train_at_interchange");
+    }
+
+    [HarmonyPrefix]
+    private static void Prefix(out IDisposable __state)
+    {
+        __state = TrainIntegrationState.Service == null
+            ? null
+            : TrainIntegrationState.Service.PushSpawnReason(VehicleSpawnReason.InterchangeUsed);
+    }
+
+    [HarmonyFinalizer]
+    private static Exception Finalizer(Exception __exception, IDisposable __state)
+    {
+        __state?.Dispose();
+        return __exception;
+    }
+}
 
     [HarmonyPatch]
     internal static class DefinitionEditorModeSpawnReasonPatch

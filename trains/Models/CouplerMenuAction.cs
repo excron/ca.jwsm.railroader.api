@@ -8,7 +8,7 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Models
             string label,
             CouplerActionGroup group,
             CouplerMenuSlot slot,
-            CouplerActionStyle style,
+            CouplerMenuIcon icon,
             bool isEnabled,
             Action onSelected,
             string disabledReason = null)
@@ -16,7 +16,7 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Models
             Label = label ?? string.Empty;
             Group = group;
             Slot = slot;
-            Style = style;
+            Icon = icon;
             IsEnabled = isEnabled;
             OnSelected = onSelected;
             DisabledReason = disabledReason;
@@ -28,7 +28,7 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Models
 
         public CouplerMenuSlot Slot { get; }
 
-        public CouplerActionStyle Style { get; }
+        public CouplerMenuIcon Icon { get; }
 
         public bool IsEnabled { get; }
 

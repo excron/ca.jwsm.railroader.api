@@ -10,4 +10,6 @@ This release continues the first real API-host migration pass and tightens host 
 - Added save-delete lifecycle publication and targeted mod-data deletion for per-save consumer data cleanup.
 - Added unload-safe host shutdown so the API detaches cleanly, clears static patch state, and unpatches Harmony on unload.
 - Added host-side repeated-log coalescing and fail-soft guards around spam-prone update and patch entry points.
-- Refined coupler menu ownership so the API host maps generic menu slots, not mod-specific `Repair` / `Replace` behavior.
+- Refined coupler menu ownership so the API host maps generic menu slots/icons, not mod-specific `Repair` / `Replace` behavior.
+- Added generic `RepairWorkEstimate` publication so consumer mods can apply repair-facility effects without reflecting `RepairTrack` internals themselves.
+- Cleared current save context when an active save is deleted so consumer persistence does not recreate deleted save data on shutdown.

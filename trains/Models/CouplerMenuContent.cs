@@ -12,16 +12,26 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Models
             get { return _actions; }
         }
 
+        public int Count
+        {
+            get { return _actions.Count; }
+        }
+
+        public bool HasActions
+        {
+            get { return _actions.Count > 0; }
+        }
+
         public void AddAction(
             string label,
             CouplerActionGroup group,
             CouplerMenuSlot slot,
-            CouplerActionStyle style,
+            CouplerMenuIcon icon,
             bool isEnabled,
             Action onSelected,
             string disabledReason = null)
         {
-            _actions.Add(new CouplerMenuAction(label, group, slot, style, isEnabled, onSelected, disabledReason));
+            _actions.Add(new CouplerMenuAction(label, group, slot, icon, isEnabled, onSelected, disabledReason));
         }
     }
 }

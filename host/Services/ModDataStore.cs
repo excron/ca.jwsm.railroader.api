@@ -67,11 +67,8 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
                 File.Delete(path);
             }
 
-            string directory = Path.GetDirectoryName(path);
-            if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory) && Directory.GetFiles(directory).Length == 0 && Directory.GetDirectories(directory).Length == 0)
-            {
-                Directory.Delete(directory, recursive: false);
-            }
+            string root = Path.Combine(Application.persistentDataPath, "Mods", Sanitize(ownerId));
+            DeleteEmptyDirectoryChain(Path.GetDirectoryName(path), root);
         }
 
         private string GetPath(string ownerId, ModDataScope scope, ModDataKey key, string scopeId = null)
@@ -107,6 +104,36 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             }
 
             return string.IsNullOrWhiteSpace(result) ? "default" : result;
+        }
+
+        private static void DeleteEmptyDirectoryChain(string startDirectory, string stopAtDirectoryInclusive)
+        {
+            if (string.IsNullOrWhiteSpace(startDirectory))
+            {
+                return;
+            }
+
+            string current = startDirectory;
+            string stopAt = string.IsNullOrWhiteSpace(stopAtDirectoryInclusive)
+                ? string.Empty
+                : Path.GetFullPath(stopAtDirectoryInclusive.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+            while (!string.IsNullOrWhiteSpace(current) && Directory.Exists(current))
+            {
+                if (Directory.GetFiles(current).Length != 0 || Directory.GetDirectories(current).Length != 0)
+                {
+                    break;
+                }
+
+                Directory.Delete(current, recursive: false);
+                string fullCurrent = Path.GetFullPath(current.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                if (!string.IsNullOrWhiteSpace(stopAt) && string.Equals(fullCurrent, stopAt, StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                current = Path.GetDirectoryName(current);
+            }
         }
     }
 }

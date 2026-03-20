@@ -65,11 +65,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
         {
             var context = CreateContext(saveId, displayName);
 
-            if (updateCurrent)
+            lock (_sync)
             {
-                lock (_sync)
+                if (updateCurrent)
                 {
                     _current = context;
+                }
+                else if (stage == SaveLifecycleStage.Deleted
+                    && !string.IsNullOrWhiteSpace(context.SaveId)
+                    && string.Equals(_current.SaveId, context.SaveId, StringComparison.Ordinal))
+                {
+                    _current = SaveContext.Empty;
                 }
             }
 

@@ -13,6 +13,7 @@ using UI;
 using UI.Common;
 using UI.ContextMenu;
 using UnityEngine;
+using UnityEngine.UI;
 using ContextMenuUi = UI.ContextMenu.ContextMenu;
 
 namespace Ca.Jwsm.Railroader.Api.Host.Patches
@@ -21,12 +22,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
     internal static class CouplerInteractionPatch
     {
         private static readonly FieldInfo QuadrantsField = AccessTools.Field(typeof(ContextMenuUi), "_quadrants");
+        private static readonly FieldInfo DividersField = AccessTools.Field(typeof(ContextMenuUi), "_dividers");
+        private static readonly FieldInfo ContentRectTransformField = AccessTools.Field(typeof(ContextMenuUi), "contentRectTransform");
+        private static readonly FieldInfo RadiusField = AccessTools.Field(typeof(ContextMenuUi), "radius");
         private static readonly FieldInfo CalloutTextLabelField = AccessTools.Field(typeof(Callout), "textLabel");
         private const string RightClickLinkId = "cf-right-click";
         private const string LeftClickOpenLine = "<sprite name=\"MouseLeft\"> Open Coupler";
         private static readonly string RightClickOpenLine = $"<link=\"{RightClickLinkId}\"><sprite name=\"MouseLeft\"></link> Open Menu";
         private const ContextMenuQuadrant LeftSlotQuadrant = ContextMenuQuadrant.Unused1;
         private const ContextMenuQuadrant RightSlotQuadrant = ContextMenuQuadrant.Unused2;
+        private const string TopDividerName = "ApiTwoButtonDividerTop";
+        private const string BottomDividerName = "ApiTwoButtonDividerBottom";
 
         [HarmonyPatch("get_ActivationFilter")]
         [HarmonyPostfix]
@@ -57,13 +63,19 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                     return;
                 }
 
+                var menuContent = new CouplerMenuContent();
+                service.PopulateMenu(context, menuContent);
+
                 var tooltip = new CouplerTooltipContent(__result.Title, string.Empty);
                 if (TryShouldShowOpenCouplerLine(__result.Text, context, out bool showOpenCoupler) && showOpenCoupler)
                 {
                     tooltip.AppendLine(LeftClickOpenLine);
                 }
 
-                tooltip.AppendLine(RightClickOpenLine);
+                if (menuContent.HasActions)
+                {
+                    tooltip.AppendLine(RightClickOpenLine);
+                }
                 service.PopulateTooltip(context, tooltip);
                 __result = new TooltipInfo(tooltip.Title, tooltip.BuildText());
                 RepeatedLogCoalescer.Flush("coupler-tooltip-info");
@@ -108,12 +120,19 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
 
                 var content = new CouplerMenuContent();
                 service.PopulateMenu(context, content);
+                if (!content.HasActions)
+                {
+                    RepeatedLogCoalescer.Flush("coupler-activate");
+                    return false;
+                }
+
                 for (int i = 0; i < content.Actions.Count; i++)
                 {
                     AddMenuAction(menu, content.Actions[i]);
                 }
 
                 menu.Show(string.IsNullOrWhiteSpace(context.DisplayName) ? "Coupler" : context.DisplayName);
+                TryApplyExplicitTwoButtonLayout(menu, content);
                 RepeatedLogCoalescer.Flush("coupler-activate");
                 return false;
             }
@@ -124,6 +143,198 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                     "[ca.jwsm.railroader.api.host] Coupler activate patch failed: " + ex);
                 return false;
             }
+        }
+
+        private static void TryApplyExplicitTwoButtonLayout(ContextMenuUi menu, CouplerMenuContent content)
+        {
+            if (menu == null)
+            {
+                return;
+            }
+
+            var contentRt = ContentRectTransformField?.GetValue(menu) as RectTransform;
+            if (content == null || content.Count != 2)
+            {
+                HideTwoButtonBorders(contentRt);
+                return;
+            }
+
+            try
+            {
+                var quadrants = QuadrantsField?.GetValue(menu) as List<List<ContextMenuItem>>;
+                if (quadrants == null || contentRt == null)
+                {
+                    return;
+                }
+
+                var leftItems = quadrants[(int)LeftSlotQuadrant];
+                var rightItems = quadrants[(int)RightSlotQuadrant];
+                if (leftItems == null || rightItems == null || leftItems.Count != 1 || rightItems.Count != 1)
+                {
+                    return;
+                }
+
+                float radius = RadiusField?.GetValue(menu) is float configuredRadius ? configuredRadius : 100f;
+                ApplyExplicitItemLayout(leftItems[0], 180f, 135f, 90f, radius, new Vector2(1f, 0.5f));
+                ApplyExplicitItemLayout(rightItems[0], 0f, 315f, 90f, radius, new Vector2(0f, 0.5f));
+
+                var dividers = DividersField?.GetValue(menu) as List<RectTransform>;
+                if (dividers != null)
+                {
+                    for (int i = 0; i < dividers.Count; i++)
+                    {
+                        var divider = dividers[i];
+                        if (divider != null)
+                        {
+                            divider.gameObject.SetActive(false);
+                        }
+                    }
+                }
+
+                ApplyTwoButtonBorders(contentRt, radius, ResolveDividerColor(dividers));
+            }
+            catch
+            {
+                HideTwoButtonBorders(contentRt);
+            }
+        }
+
+        private static void ApplyTwoButtonBorders(RectTransform contentRt, float radius, Color color)
+        {
+            if (contentRt == null)
+            {
+                return;
+            }
+
+            var topDivider = EnsureTwoButtonDivider(contentRt, TopDividerName, color);
+            var bottomDivider = EnsureTwoButtonDivider(contentRt, BottomDividerName, color);
+            if (topDivider == null || bottomDivider == null)
+            {
+                return;
+            }
+
+            const float dividerThickness = 3f;
+            float dividerLength = Mathf.Max(28f, radius * 0.72f);
+            float dividerOffset = Mathf.Max(18f, radius * 0.57f);
+
+            ApplyTwoButtonDividerLayout(topDivider, dividerThickness, dividerLength, dividerOffset);
+            ApplyTwoButtonDividerLayout(bottomDivider, dividerThickness, dividerLength, -dividerOffset);
+        }
+
+        private static RectTransform EnsureTwoButtonDivider(RectTransform parent, string name, Color color)
+        {
+            var existing = parent.Find(name) as RectTransform;
+            if (existing != null)
+            {
+                var existingImage = existing.GetComponent<Image>();
+                if (existingImage != null)
+                {
+                    existingImage.color = color;
+                    existingImage.raycastTarget = false;
+                }
+
+                existing.gameObject.SetActive(true);
+                return existing;
+            }
+
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.localScale = Vector3.one;
+
+            var image = go.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+
+            return rect;
+        }
+
+        private static void HideTwoButtonBorders(RectTransform parent)
+        {
+            if (parent == null)
+            {
+                return;
+            }
+
+            TryHideChild(parent, TopDividerName);
+            TryHideChild(parent, BottomDividerName);
+        }
+
+        private static void TryHideChild(RectTransform parent, string name)
+        {
+            var child = parent.Find(name);
+            if (child != null)
+            {
+                child.gameObject.SetActive(false);
+            }
+        }
+
+        private static void ApplyTwoButtonDividerLayout(RectTransform divider, float thickness, float length, float offsetY)
+        {
+            if (divider == null)
+            {
+                return;
+            }
+
+            divider.sizeDelta = new Vector2(thickness, length);
+            divider.anchoredPosition = new Vector2(0f, offsetY);
+            divider.localRotation = Quaternion.identity;
+            divider.gameObject.SetActive(true);
+        }
+
+        private static Color ResolveDividerColor(List<RectTransform> dividers)
+        {
+            if (dividers != null)
+            {
+                for (int i = 0; i < dividers.Count; i++)
+                {
+                    var divider = dividers[i];
+                    if (divider == null)
+                    {
+                        continue;
+                    }
+
+                    var image = divider.GetComponent<Image>();
+                    if (image != null)
+                    {
+                        return image.color;
+                    }
+                }
+            }
+
+            return new Color(0.79f, 0.72f, 0.56f, 0.9f);
+        }
+
+        private static void ApplyExplicitItemLayout(
+            ContextMenuItem item,
+            float centerAngleDegrees,
+            float startAngleDegrees,
+            float angleRangeDegrees,
+            float radius,
+            Vector2 textPivot)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            item.SetAngle(startAngleDegrees, angleRangeDegrees);
+
+            Vector2 iconPosition = PositionForAngle(centerAngleDegrees, radius);
+            ((RectTransform)item.transform).localPosition = iconPosition;
+            item.textContainer.pivot = textPivot;
+            item.textContainer.anchoredPosition = PositionForAngle(centerAngleDegrees, radius * 1.5f) - iconPosition;
+            ((RectTransform)item.wedgeImage.transform).localPosition = -iconPosition;
+        }
+
+        private static Vector2 PositionForAngle(float angleDegrees, float radius)
+        {
+            float radians = angleDegrees * Mathf.Deg2Rad;
+            return new Vector2(Mathf.Cos(radians) * radius, Mathf.Sin(radians) * radius);
         }
 
         private static bool TryCreateContext(CouplerPickable pickable, out CouplerInteractionContext context)
@@ -160,7 +371,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             }
 
             var quadrant = ResolveQuadrant(action);
-            var spriteName = ResolveSprite(action.Style);
+            var spriteName = ResolveSprite(action.Icon);
 
             menu.AddButton(quadrant, action.Label, spriteName, () =>
             {
@@ -177,17 +388,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             TryStyleLastButton(menu, quadrant, action.IsEnabled);
         }
 
-        private static SpriteName ResolveSprite(CouplerActionStyle style)
+        private static SpriteName ResolveSprite(CouplerMenuIcon icon)
         {
-            switch (style)
+            switch (icon)
             {
-                case CouplerActionStyle.Toggle:
+                case CouplerMenuIcon.Select:
                     return SpriteName.Select;
-                case CouplerActionStyle.Repair:
+                case CouplerMenuIcon.Inspect:
                     return SpriteName.Inspect;
-                case CouplerActionStyle.Replace:
+                case CouplerMenuIcon.Bleed:
                     return SpriteName.Bleed;
-                case CouplerActionStyle.Default:
+                case CouplerMenuIcon.Default:
                 default:
                     return SpriteName.Select;
             }

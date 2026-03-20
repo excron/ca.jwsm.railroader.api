@@ -4,11 +4,11 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Events
 {
     public sealed class VehicleRepairWorkAvailableEvent
     {
-        public VehicleRepairWorkAvailableEvent(VehicleId vehicleId, string displayName, float repairWorkUnitsAvailable, object nativeVehicle)
+        public VehicleRepairWorkAvailableEvent(VehicleId vehicleId, string displayName, RepairWorkEstimate repairEstimate, object nativeVehicle)
         {
             VehicleId = vehicleId;
             DisplayName = displayName ?? vehicleId.Value;
-            RepairWorkUnitsAvailable = repairWorkUnitsAvailable;
+            RepairEstimate = repairEstimate;
             NativeVehicle = nativeVehicle;
         }
 
@@ -16,7 +16,7 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Events
 
         public string DisplayName { get; }
 
-        public float RepairWorkUnitsAvailable { get; }
+        public RepairWorkEstimate RepairEstimate { get; }
 
         public object NativeVehicle { get; }
     }
