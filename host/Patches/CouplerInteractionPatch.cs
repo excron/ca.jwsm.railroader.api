@@ -66,7 +66,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                 var menuContent = new CouplerMenuContent();
                 service.PopulateMenu(context, menuContent);
 
-                var tooltip = new CouplerTooltipContent(__result.Title, string.Empty);
+                var tooltip = new CouplerTooltipContent(BuildTooltipTitle(context, __result.Title), string.Empty);
                 if (TryShouldShowOpenCouplerLine(__result.Text, context, out bool showOpenCoupler) && showOpenCoupler)
                 {
                     tooltip.AppendLine(LeftClickOpenLine);
@@ -361,6 +361,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                 car,
                 logicalEnd.ToString());
             return true;
+        }
+
+        private static string BuildTooltipTitle(CouplerInteractionContext context, string fallbackTitle)
+        {
+            string baseTitle = string.IsNullOrWhiteSpace(fallbackTitle) ? "Coupler" : fallbackTitle.Trim();
+            if (context == null || string.IsNullOrWhiteSpace(context.DisplayName))
+            {
+                return baseTitle;
+            }
+
+            return $"{baseTitle} [{context.DisplayName.Trim()}]";
         }
 
         private static void AddMenuAction(ContextMenuUi menu, CouplerMenuAction action)

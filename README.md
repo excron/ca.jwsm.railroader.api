@@ -21,9 +21,10 @@ The installed host mod currently provides:
 - solver constraint telemetry publication
 - brake-display discovery events
 - coupler tooltip and context-menu provider hooks
+- coupler hover-title composition that can include provider/context vehicle display names
 - generic coupler menu slot/icon presentation mapping for consumer-provided actions
 - generic screen-level overlay text panel hosting for debug or lightweight status displays
-- vanilla wear/tear state publication
+- vanilla wear/tear publication, including enabled state, wear multiplier, and overhaul mileage
 - repair-track repair progress/work publication, including generic repair-work estimation for consumers
 - world layout submission and early-apply timing
 - external world asset-store registration and base-path resolution
@@ -176,6 +177,7 @@ Recent hardening work also tightened the host boundary:
 
 - the host no longer encodes Coupler Forces-specific menu action semantics
 - the repair facility seam now publishes generic repair estimates instead of forcing consumer mods to reflect `RepairTrack` internals
+- the wear/tear seam now publishes the vanilla wear multiplier and overhaul mileage, not just the on/off toggle
 - save deletion now clears current save context when the deleted save was active
 - consumer persistence now runs through the API store only, instead of mods carrying their own fallback save pipeline
 - save-scoped mod data no longer falls back to a synthetic `default` save id when no real save context exists
