@@ -5,13 +5,21 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
 {
     public sealed class HostBootstrapper
     {
-        private readonly Harmony _harmony = new Harmony("ca.jwsm.railroader.api.host");
+        public const string HarmonyId = "ca.jwsm.railroader.api.host";
+
+        private readonly Harmony _harmony = new Harmony(HarmonyId);
 
         public IApiHost Bootstrap()
         {
             var host = new HostCompositionRoot().Build();
             _harmony.PatchAll(typeof(HostBootstrapper).Assembly);
             return host;
+        }
+
+        public void Shutdown()
+        {
+            HostPatchState.Reset();
+            _harmony.UnpatchAll(HarmonyId);
         }
     }
 }

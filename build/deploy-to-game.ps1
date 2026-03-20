@@ -20,16 +20,16 @@ $locomotiveControlProject = Join-Path $modsRoot "locomotivecontrol\ca.jwsm.railr
 $locomotiveControlInfoPath = Join-Path $modsRoot "locomotivecontrol\info.json"
 $locomotiveControlOutputDir = Join-Path $modsRoot "locomotivecontrol\bin\Release"
 
-$mapLoaderProject = Join-Path $modsRoot "mapmodloader\ca.jwsm.railroader.mods.mapmodloader.csproj"
-$mapLoaderInfoPath = Join-Path $modsRoot "mapmodloader\info.json"
-$mapLoaderOutputDir = Join-Path $modsRoot "mapmodloader\bin\Release"
+$mapLoaderProject = Join-Path $modsRoot "compat\mapmodloader\ca.jwsm.railroader.mods.compat.mapmodloader.csproj"
+$mapLoaderInfoPath = Join-Path $modsRoot "compat\mapmodloader\info.json"
+$mapLoaderOutputDir = Join-Path $modsRoot "compat\mapmodloader\bin\Release"
 
 $gameModsDir = Join-Path $GameDir "Mods"
 $apiInstallDir = Join-Path $gameModsDir "ca.jwsm.railroader.api"
 $couplerInstallDir = Join-Path $gameModsDir "ca.jwsm.railroader.mods.couplerforces"
 $locomotiveControlInstallDir = Join-Path $gameModsDir "ca.jwsm.railroader.mods.locomotivecontrol"
 $legacyDpuInstallDir = Join-Path $gameModsDir "ca.jwsm.railroader.mods.dpu"
-$mapLoaderInstallDir = Join-Path $gameModsDir "ca.jwsm.railroader.mods.mapmodloader"
+$mapLoaderInstallDir = Join-Path $gameModsDir "ca.jwsm.railroader.mods.compat.mapmodloader"
 
 if (-not (Test-Path $gameModsDir)) {
     throw "Game Mods directory not found: $gameModsDir"
@@ -49,6 +49,10 @@ if (Test-Path $legacyDpuInstallDir) {
     Remove-Item $legacyDpuInstallDir -Force -Recurse
 }
 
+Get-ChildItem $apiInstallDir -File -Filter "*.pdb" -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem $couplerInstallDir -File -Filter "*.pdb" -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem $locomotiveControlInstallDir -File -Filter "*.pdb" -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem $mapLoaderInstallDir -File -Filter "*.pdb" -ErrorAction SilentlyContinue | Remove-Item -Force
 Get-ChildItem $mapLoaderInstallDir -Force | Remove-Item -Force -Recurse
 
 Copy-Item $apiInfoPath -Destination (Join-Path $apiInstallDir "info.json") -Force

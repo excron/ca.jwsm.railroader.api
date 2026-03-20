@@ -4,6 +4,7 @@
   <PropertyGroup>
     <AssemblyName>ca.jwsm.railroader.api.host</AssemblyName>
     <RootNamespace>Ca.Jwsm.Railroader.Api.Host</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <PropertyGroup>
