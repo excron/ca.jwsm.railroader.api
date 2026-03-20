@@ -15,12 +15,13 @@ namespace Ca.Jwsm.Railroader.Api.Trains.Models
         public void AddAction(
             string label,
             CouplerActionGroup group,
+            CouplerMenuSlot slot,
             CouplerActionStyle style,
             bool isEnabled,
             Action onSelected,
             string disabledReason = null)
         {
-            _actions.Add(new CouplerMenuAction(label, group, style, isEnabled, onSelected, disabledReason));
+            _actions.Add(new CouplerMenuAction(label, group, slot, style, isEnabled, onSelected, disabledReason));
         }
     }
 }

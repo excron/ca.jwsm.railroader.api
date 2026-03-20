@@ -1,8 +1,8 @@
-# V1 Scope
+# Current Scope
 
 ## Included
 
-The v1 scaffold includes these projects:
+The current API stack includes these projects:
 
 - `ca.jwsm.railroader.api.abstractions`
 - `ca.jwsm.railroader.api.core`
@@ -12,26 +12,32 @@ The v1 scaffold includes these projects:
 - `ca.jwsm.railroader.api.orders`
 - `ca.jwsm.railroader.api.persistence`
 
-The included surface area is intentionally small:
+The currently implemented host-backed surface includes:
 
-- shared contracts, IDs, and result types
-- a minimal service registry, event bus, capability service, and diagnostics fan-out
-- starter public contracts/models/events for UI, trains, orders, and persistence
-- a stub host bootstrap/composition root
-- basic build and documentation assets
+- save context and save lifecycle observation
+- mod-scoped save data storage
+- vehicle add/remove publication
+- coupling attempt interception and veto
+- coupling completion events
+- integration-set constraint telemetry capture
+- brake-display availability events
+- coupler tooltip/menu provider hosting
+- wear/tear feature state publication
+- repair-track progress/work publication
+- world layout early-apply timing
+- world asset-store registration and base-path resolution
+- unload-safe bootstrap and patch cleanup
 
-## Deferred
+## Still Consumer-Owned Or Migration-Stage
 
-The following items are explicitly deferred:
-
-- real Railroader integration
-- Harmony patches
-- reflection-based adaptation and native object binding
-- telemetry, world, routing, ops, gameplay, and multiplayer projects
-- compatibility shims for older bridges
-- CI, release packaging, and installer automation
-- deep implementations of storage, diagnostics, UI rendering, or order execution
+- UMM settings UI
+- gameplay-specific repair/replace logic
+- gameplay-specific durability systems
+- several higher-level world/map behaviors
+- richer dispatch / control / route domains
 
 ## Guiding Constraint
 
-If a feature requires speculative design or fragile game coupling to exist, it stays out of v1 until a concrete integration requirement exists.
+If a seam can be shared generically, it should move into the API host.
+
+If a behavior is gameplay-specific, economy-specific, or mod-identity-specific, it should stay in the consumer mod and use the API as a producer/consumer boundary.

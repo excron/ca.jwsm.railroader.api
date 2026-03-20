@@ -1,33 +1,39 @@
 # ca.jwsm.railroader.api
 
-`ca.jwsm.railroader.api` is the shared platform and API scaffold for Railroader mods. Its job is to isolate fragile game integration inside a single host layer and expose stable contracts, services, events, and extension points to consumer mods.
+`ca.jwsm.railroader.api` is the shared host and contract stack for namespaced Railroader UMM/Harmony mods.
 
-## Problem Statement
+The design goal is simple:
 
-Railroader mod integrations are easy to make brittle when every mod reaches directly into game internals. This repository is intended to centralize that risk:
+- keep fragile Railroader patching in one host mod
+- expose stable contracts, services, events, and capabilities to consumer mods
+- let gameplay mods consume host-owned seams instead of each mod patching the same game entrypoints
 
-- the host mod will eventually patch vanilla Railroader once
-- the host will adapt game internals into stable public abstractions
-- consumer mods will target stable API projects instead of patching the game themselves
+This repository is no longer just a scaffold. It now contains a working host used by live mods such as `ca.jwsm.railroader.mods.couplerforces`.
 
-This first version is intentionally architecture-first. It establishes the solution shape, dependency rules, starter contracts, and a minimal host bootstrap without implementing real Railroader integration.
+## Current Host Scope
 
-## Design Goals
+The installed host mod currently provides:
 
-- keep public contracts small and stable
-- keep invasive game adaptation isolated to the host
-- allow consumer mods to depend on public API projects, not implementation internals
-- keep domains separated so shared types flow through abstractions rather than ad hoc cross-references
-- stay lean until real integration requirements are proven
+- save context and save lifecycle events
+- mod-scoped save data storage
+- train and vehicle lifecycle events
+- coupling-attempt interception
+- solver constraint telemetry publication
+- brake-display discovery events
+- coupler tooltip and context-menu provider hooks
+- vanilla wear/tear state publication
+- repair-track repair progress/work publication
+- world layout submission and early-apply timing
+- external world asset-store registration and base-path resolution
+- unload-safe Harmony/bootstrap cleanup
+- repeated-log coalescing for spam-prone update and patch paths
 
-## Repository Structure
-
-Projects live directly under the repository root.
+## Repository Layout
 
 ```text
 ca.jwsm.railroader.api/
-  ca.jwsm.railroader.api.sln
   README.md
+  ca.jwsm.railroader.api.sln
   build/
   docs/
   abstractions/
@@ -43,85 +49,63 @@ ca.jwsm.railroader.api/
 
 ### `abstractions`
 
-Pure contracts and shared primitives:
+Shared public primitives:
 
-- service interfaces
-- API access entrypoint for consumer mods
+- service contracts
+- API host access contracts
+- capability contracts
 - event bus contracts
 - diagnostics contracts
-- common IDs, versions, and result types
-
-This layer should remain free of Harmony, reflection-heavy integration, and Railroader object handling.
+- IDs, versions, and result types
 
 ### `core`
 
-Generic runtime plumbing shared by the platform:
+Generic platform plumbing:
 
-- API host implementation
 - service registry
 - capability registry
 - in-memory event bus
 - diagnostics fan-out
-
-`core` depends only on `abstractions`.
+- API host implementation
 
 ### `host`
 
-The installed host mod:
+The only intentionally invasive layer:
 
-- owns bootstrap and composition
-- will eventually own Harmony patches and native Railroader adaptation
-- is the only layer intended to depend on fragile game integration
-
-For v1, this project now starts carrying real host-owned Railroader adaptation for the first migration targets:
-
-- save lifecycle observation
-- car add/remove lifecycle publication
-- coupling attempt interception
-- solver telemetry publication
-- brake-display discovery events
-- world layout lifecycle and early apply timing
-- external world asset-store registration and base-path resolution
+- bootstrap and composition
+- Harmony patch ownership
+- Railroader-native adaptation
+- translation from unstable game internals to public contracts
 
 ### `ui`
 
-Consumer-facing UI contracts and models for:
+Consumer-facing UI contracts and models:
 
-- windows
-- HUD widgets
-- context menus
+- HUD hooks
 - notifications
-- HUD anchor/context seams for locomotive controls and inspector injection
+- context contribution surfaces
 
 ### `trains`
 
-Consumer-facing train, consist, vehicle, and coupler contracts/models/events.
+Consumer-facing train, consist, coupler, and repair contracts:
 
-The current scaffold also includes a small train stress contract to support the first Coupler Forces migration without carrying old bridge types forward.
-
-The first DPU migration pass also starts adding train-control seams here:
-
-- selected locomotive/control context
-- control request interception contracts
-- consist/group topology snapshots
+- vehicle/coupler identifiers and context models
+- coupler interaction provider surfaces
+- train stress contracts
+- coupling, telemetry, and repair events
+- wear/tear feature contracts
 
 ### `orders`
 
-Consumer-facing order execution contracts/models/events for AutoEngineer-style flows:
-
-- submission bridge contracts
-- execution observation and state snapshots
-- readiness gates evaluated against observed state
-- normalized lifecycle events and observer facts
+Normalized execution and observation seams for dispatch / AE-style workflows.
 
 ### `persistence`
 
-Consumer-facing persistence contracts/models for:
+Consumer-facing persistence contracts:
 
 - save context
-- save lifecycle observation
+- save lifecycle
 - mod-scoped data storage
-- config access
 
 ## Dependency Rules
 
@@ -144,68 +128,58 @@ Not allowed:
 - no cross-domain references between `ui`, `trains`, `orders`, and `persistence`
 - consumer mods should not depend on `host`
 
-If a shared type is needed across domains, it belongs in `abstractions`.
+## Current Consumer Pattern
 
-## Host Patch Policy
+Consumer mods are expected to:
 
-The host is the only invasive layer. It will eventually patch vanilla Railroader once and translate unstable game internals into stable contracts. Public-facing projects should remain insulated from those implementation details.
+- require `ca.jwsm.railroader.api`
+- query the attached API host through `RailroaderApi.TryGet(...)`
+- resolve required services through `apiHost.Services`
+- subscribe to host-published events
+- register their own providers where appropriate
 
-That means:
+Example current usage from Coupler Forces:
 
-- no Harmony or direct patching in public API projects
-- no Railroader-native object handling in public contracts
-- no duplicate per-mod patch strategies where the host can provide a stable service instead
+- consumes save lifecycle and mod data store services
+- consumes train integration and wear/tear events
+- registers an `ICouplerInteractionProvider`
+- registers an `ITrainStressService`
 
-## V1 Scope
+## Build
 
-Included in this scaffold:
+Typical build:
 
-- solution and project structure
-- shared build defaults
-- starter contracts in `abstractions`
-- minimal runtime plumbing in `core`
-- initial public domain contracts for `ui`, `trains`, `orders`, and `persistence`
-- stub host bootstrap and composition root
-- starter architecture docs
+```powershell
+dotnet build .\ca.jwsm.railroader.api.sln -c Release
+```
 
-Deferred for later:
+The host project targets `net48` and expects local Railroader / Unity Mod Manager assemblies to be available.
 
-- real Railroader integration
-- native object adaptation
-- telemetry, routing, ops, gameplay, and multiplayer domains
-- backward compatibility shims
-- CI, packaging, and installer concerns
+## Deploy
 
-## Future Domains
+The current deploy scripts live in [build/deploy-to-game.ps1](C:/Users/jsm12/OneDrive/Documents/Game_Projects/Railroader/ca.jwsm.railroader.api/build/deploy-to-game.ps1) and [build/deploy-to-game.bat](C:/Users/jsm12/OneDrive/Documents/Game_Projects/Railroader/ca.jwsm.railroader.api/build/deploy-to-game.bat).
 
-The initial public surface focuses on:
+The PowerShell deploy path currently rebuilds and installs:
 
-- UI
-- trains
-- orders
-- persistence
-
-Additional domains can be added later once the host integration layer and public contracts prove stable:
-
-- telemetry
-- richer world/state public domains
-- routing
-- operations
-- gameplay systems
-- multiplayer coordination
+- `ca.jwsm.railroader.api`
+- `ca.jwsm.railroader.mods.couplerforces`
+- `ca.jwsm.railroader.mods.locomotivecontrol`
+- `ca.jwsm.railroader.mods.compat.mapmodloader`
 
 ## Current Status
 
-This repository is currently an early architecture scaffold. The solution is intended to compile cleanly, document the agreed boundaries, and provide a conservative starting point for future implementation work.
+The host is now carrying real, production-facing integration for save lifecycle, trains, couplers, repair facilities, wear/tear state, and world-layout timing.
 
-The current `orders` surface now starts to absorb the observer/state direction from legacy Ops Manager work, but the host still exposes only placeholder AE integration until native Railroader observation is implemented.
+It is still intentionally incomplete as a total modding platform. Some domains remain migration-stage or consumer-owned:
 
-The current `ui` and `trains` surfaces also now define the first DPU-driven seams for lower-left HUD injection, selected locomotive context, control interception, and consist grouping, but the host does not yet populate those seams from live Railroader state.
+- UMM settings UI still lives in consumer mods
+- several gameplay systems are still being migrated behind shared seams
+- the world/map surface is usable but not yet a finished general-purpose public map-mod API
 
-The current `persistence` surface now also starts the first Coupler Forces-driven save lifecycle path: the host owns save/load/unload observation and a mod-scoped JSON store so consumer mods can stop patching save lifecycle directly over time.
+## Version Notes
 
-The current `trains` and `ui` event surfaces now also start the first game-ready Coupler Forces host path: the host publishes vehicle lifecycle, coupling attempt, constraint telemetry, and brake-display availability so the mod can consume shared events instead of owning those Harmony patches itself.
+Current host package version:
 
-The `trains` surface now also includes a small coupler interaction provider contract so the host can own `CouplerPickable` patching while consumer mods contribute tooltip and menu behavior through the API.
+- `0.1.0.2`
 
-The current `abstractions/World` and `host` surfaces now also start the first real map/runtime migration path: the host owns early world apply timing plus external asset-store hooks, while consumer mods can submit world layout documents and `/MapMods`-backed asset-store registrations into the host. This is the start of a neutral map/world backend, but it is not yet a complete public map-mod API.
+See [docs/CHANGELOG.md](C:/Users/jsm12/OneDrive/Documents/Game_Projects/Railroader/ca.jwsm.railroader.api/docs/CHANGELOG.md) for recent API-host changes.

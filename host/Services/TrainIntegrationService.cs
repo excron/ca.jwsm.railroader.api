@@ -40,14 +40,14 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             get { return _events.HasSubscribers<ConstraintTelemetryCapturedEvent>(); }
         }
 
-        public void PublishVehicleAdded(Car car)
+        public void PublishVehicleAdded(Car car, bool hadRequestedCarId = false)
         {
             if (!TryCreateVehicleId(car, out var vehicleId))
             {
                 return;
             }
 
-            _events.Publish(new VehicleAddedEvent(vehicleId, car.DisplayName ?? vehicleId.Value, ResolveSpawnReason()));
+            _events.Publish(new VehicleAddedEvent(vehicleId, car.DisplayName ?? vehicleId.Value, ResolveSpawnReason(hadRequestedCarId)));
         }
 
         public void PublishVehicleRemoved(Car car)
@@ -109,11 +109,51 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
             _events.Publish(new TrainBrakeDisplayAvailableEvent(display));
         }
 
-        private static VehicleSpawnReason ResolveSpawnReason()
+        public void PublishVehicleRepairProgressed(Car car, float conditionBefore, float conditionAfter, float repairUsed)
         {
-            return _currentSpawnReason == VehicleSpawnReason.Unknown
+            if (!TryCreateVehicleId(car, out var vehicleId) || repairUsed <= 1e-6f)
+            {
+                return;
+            }
+
+            if ((conditionAfter - conditionBefore) <= 1e-6f)
+            {
+                return;
+            }
+
+            _events.Publish(new VehicleRepairProgressedEvent(
+                vehicleId,
+                car.DisplayName ?? vehicleId.Value,
+                conditionBefore,
+                conditionAfter,
+                repairUsed,
+                car));
+        }
+
+        public void PublishVehicleRepairWorkAvailable(Car car, float repairWorkUnitsAvailable)
+        {
+            if (!TryCreateVehicleId(car, out var vehicleId) || repairWorkUnitsAvailable <= 1e-6f)
+            {
+                return;
+            }
+
+            _events.Publish(new VehicleRepairWorkAvailableEvent(
+                vehicleId,
+                car.DisplayName ?? vehicleId.Value,
+                repairWorkUnitsAvailable,
+                car));
+        }
+
+        private static VehicleSpawnReason ResolveSpawnReason(bool hadRequestedCarId)
+        {
+            if (_currentSpawnReason != VehicleSpawnReason.Unknown)
+            {
+                return _currentSpawnReason;
+            }
+
+            return hadRequestedCarId
                 ? VehicleSpawnReason.InterchangeUsed
-                : _currentSpawnReason;
+                : VehicleSpawnReason.PurchasedNew;
         }
 
         private static bool TryCreateVehicleId(Car car, out VehicleId vehicleId)

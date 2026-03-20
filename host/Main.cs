@@ -1,6 +1,9 @@
 using Ca.Jwsm.Railroader.Api.Abstractions.Api;
 using Ca.Jwsm.Railroader.Api.Abstractions.World.Contracts;
 using Ca.Jwsm.Railroader.Api.Host.Bootstrap;
+using Ca.Jwsm.Railroader.Api.Host.Diagnostics;
+using Ca.Jwsm.Railroader.Api.Host.Services;
+using Ca.Jwsm.Railroader.Api.Trains.Contracts;
 using UnityModManagerNet;
 
 namespace Ca.Jwsm.Railroader.Api.Host
@@ -33,9 +36,34 @@ namespace Ca.Jwsm.Railroader.Api.Host
             var host = Initialize();
             entry.OnUpdate = (_, __) =>
             {
+                if (host.Services.TryGet<WearFeatureService>(out var wearFeatures))
+                {
+                    try
+                    {
+                        wearFeatures.Tick();
+                        RepeatedLogCoalescer.Flush("wear-feature-tick");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        RepeatedLogCoalescer.LogWarning(
+                            "wear-feature-tick",
+                            "[ca.jwsm.railroader.api.host] WearFeatureService.Tick failed: " + ex);
+                    }
+                }
+
                 if (host.Services.TryGet<IWorldLayoutService>(out var worldLayout))
                 {
-                    worldLayout.Tick();
+                    try
+                    {
+                        worldLayout.Tick();
+                        RepeatedLogCoalescer.Flush("world-layout-tick");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        RepeatedLogCoalescer.LogWarning(
+                            "world-layout-tick",
+                            "[ca.jwsm.railroader.api.host] IWorldLayoutService.Tick failed: " + ex);
+                    }
                 }
             };
             entry.OnUnload = _ =>

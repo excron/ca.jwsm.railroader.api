@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Ca.Jwsm.Railroader.Api.Host.Diagnostics;
 using Ca.Jwsm.Railroader.Api.Host.Services;
 using Ca.Jwsm.Railroader.Api.Trains.Models;
 using Game.State;
@@ -37,13 +38,113 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         }
     }
 
+    [HarmonyPatch]
+    internal static class PlaceConsistCommandSpawnReasonPatch
+    {
+        static MethodBase TargetMethod()
+        {
+            var type = AccessTools.TypeByName("UI.Console.Commands.PlaceConsistCommand");
+            return type == null ? null : AccessTools.Method(type, "Execute");
+        }
+
+        [HarmonyPrefix]
+        private static void Prefix(out IDisposable __state)
+        {
+            __state = TrainIntegrationState.Service == null
+                ? null
+                : TrainIntegrationState.Service.PushSpawnReason(VehicleSpawnReason.PurchasedNew);
+        }
+
+        [HarmonyFinalizer]
+        private static Exception Finalizer(Exception __exception, IDisposable __state)
+        {
+            __state?.Dispose();
+            return __exception;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class ScriptWorldPlaceTrainSpawnReasonPatch
+    {
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            var type = AccessTools.TypeByName("Game.Scripting.ScriptWorld");
+            if (type == null)
+            {
+                yield break;
+            }
+
+            var placeTrain = AccessTools.Method(type, "place_train");
+            if (placeTrain != null)
+            {
+                yield return placeTrain;
+            }
+
+            var placeTrainAtInterchange = AccessTools.Method(type, "place_train_at_interchange");
+            if (placeTrainAtInterchange != null)
+            {
+                yield return placeTrainAtInterchange;
+            }
+        }
+
+        [HarmonyPrefix]
+        private static void Prefix(out IDisposable __state)
+        {
+            __state = TrainIntegrationState.Service == null
+                ? null
+                : TrainIntegrationState.Service.PushSpawnReason(VehicleSpawnReason.PurchasedNew);
+        }
+
+        [HarmonyFinalizer]
+        private static Exception Finalizer(Exception __exception, IDisposable __state)
+        {
+            __state?.Dispose();
+            return __exception;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class DefinitionEditorModeSpawnReasonPatch
+    {
+        static MethodBase TargetMethod()
+        {
+            var type = AccessTools.TypeByName("UI.CarEditor.DefinitionEditorModeController");
+            return type == null ? null : AccessTools.Method(type, "EditItemCar");
+        }
+
+        [HarmonyPrefix]
+        private static void Prefix(out IDisposable __state)
+        {
+            __state = TrainIntegrationState.Service == null
+                ? null
+                : TrainIntegrationState.Service.PushSpawnReason(VehicleSpawnReason.PurchasedNew);
+        }
+
+        [HarmonyFinalizer]
+        private static Exception Finalizer(Exception __exception, IDisposable __state)
+        {
+            __state?.Dispose();
+            return __exception;
+        }
+    }
+
     [HarmonyPatch(typeof(TrainController), "CreateCarIfNeeded")]
     internal static class TrainControllerCreateCarIfNeededPatch
     {
         [HarmonyPostfix]
-        private static void Postfix(Car __result)
+        private static void Postfix(Car __result, string carId)
         {
-            TrainIntegrationState.Service?.PublishVehicleAdded(__result);
+            try
+            {
+                TrainIntegrationState.Service?.PublishVehicleAdded(__result, !string.IsNullOrWhiteSpace(carId));
+                RepeatedLogCoalescer.Flush("train-create-car-if-needed");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "train-create-car-if-needed",
+                    "[ca.jwsm.railroader.api.host] TrainController.CreateCarIfNeeded postfix failed: " + ex);
+            }
         }
     }
 
@@ -53,7 +154,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         [HarmonyPrefix]
         private static void Prefix(Car car)
         {
-            TrainIntegrationState.Service?.PublishVehicleRemoved(car);
+            try
+            {
+                TrainIntegrationState.Service?.PublishVehicleRemoved(car);
+                RepeatedLogCoalescer.Flush("train-will-remove-car");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "train-will-remove-car",
+                    "[ca.jwsm.railroader.api.host] TrainController.WillRemoveCar prefix failed: " + ex);
+            }
         }
     }
 
@@ -63,17 +174,40 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         [HarmonyPrefix]
         private static bool Prefix(Car car0, Car car1, float deltaVelocity, out bool __state)
         {
-            __state = TrainIntegrationState.Service == null
-                || TrainIntegrationState.Service.PublishCouplerAttempt(car0, car1, deltaVelocity);
-            return __state;
+            try
+            {
+                __state = TrainIntegrationState.Service == null
+                    || TrainIntegrationState.Service.PublishCouplerAttempt(car0, car1, deltaVelocity);
+                RepeatedLogCoalescer.Flush("integration-set-did-couple-prefix");
+                return __state;
+            }
+            catch (Exception ex)
+            {
+                __state = true;
+                RepeatedLogCoalescer.LogWarning(
+                    "integration-set-did-couple-prefix",
+                    "[ca.jwsm.railroader.api.host] TrainController.IntegrationSetDidCouple prefix failed: " + ex);
+                return true;
+            }
         }
 
         [HarmonyPostfix]
         private static void Postfix(Car car0, Car car1, float deltaVelocity, bool __state)
         {
-            if (__state)
+            try
             {
-                TrainIntegrationState.Service?.PublishCoupled(car0, car1, deltaVelocity);
+                if (__state)
+                {
+                    TrainIntegrationState.Service?.PublishCoupled(car0, car1, deltaVelocity);
+                }
+
+                RepeatedLogCoalescer.Flush("integration-set-did-couple-postfix");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "integration-set-did-couple-postfix",
+                    "[ca.jwsm.railroader.api.host] TrainController.IntegrationSetDidCouple postfix failed: " + ex);
             }
         }
     }
@@ -84,7 +218,17 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         [HarmonyPostfix]
         private static void Postfix(TrainBrakeDisplay __instance)
         {
-            TrainIntegrationState.Service?.PublishTrainBrakeDisplayAvailable(__instance);
+            try
+            {
+                TrainIntegrationState.Service?.PublishTrainBrakeDisplayAvailable(__instance);
+                RepeatedLogCoalescer.Flush("train-brake-display-awake");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "train-brake-display-awake",
+                    "[ca.jwsm.railroader.api.host] TrainBrakeDisplay.Awake postfix failed: " + ex);
+            }
         }
     }
 

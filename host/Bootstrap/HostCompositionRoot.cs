@@ -37,6 +37,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             var modDataStore = new ModDataStore(saveContext);
             var trainIntegration = new TrainIntegrationService(events);
             var couplerInteractions = new CouplerInteractionService();
+            var wearFeatures = new WearFeatureService(events);
             var worldLayout = new WorldLayoutService();
             var worldAssetStores = new WorldAssetStoreService();
 
@@ -57,6 +58,8 @@ namespace Ca.Jwsm.Railroader.Api.Host.Bootstrap
             services.Register<ITrainService>(trains);
             services.Register<IConsistService>(trains);
             services.Register<ICouplerInteractionService>(couplerInteractions);
+            services.Register<WearFeatureService>(wearFeatures);
+            services.Register<IWearFeatureService>(wearFeatures);
             services.Register<ISaveContextService>(saveContext);
             services.Register<ISaveLifecycleService>(saveContext);
             services.Register<IModDataStore>(modDataStore);

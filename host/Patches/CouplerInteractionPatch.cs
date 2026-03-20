@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Ca.Jwsm.Railroader.Api.Host.Diagnostics;
 using Ca.Jwsm.Railroader.Api.Host.Services;
 using Ca.Jwsm.Railroader.Api.Trains.Models;
 using Game.State;
 using HarmonyLib;
 using Model;
 using RollingStock;
+using TMPro;
 using UI;
 using UI.Common;
 using UI.ContextMenu;
@@ -19,67 +21,109 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
     internal static class CouplerInteractionPatch
     {
         private static readonly FieldInfo QuadrantsField = AccessTools.Field(typeof(ContextMenuUi), "_quadrants");
+        private static readonly FieldInfo CalloutTextLabelField = AccessTools.Field(typeof(Callout), "textLabel");
+        private const string RightClickLinkId = "cf-right-click";
+        private const string LeftClickOpenLine = "<sprite name=\"MouseLeft\"> Open Coupler";
+        private static readonly string RightClickOpenLine = $"<link=\"{RightClickLinkId}\"><sprite name=\"MouseLeft\"></link> Open Menu";
+        private const ContextMenuQuadrant LeftSlotQuadrant = ContextMenuQuadrant.Unused1;
+        private const ContextMenuQuadrant RightSlotQuadrant = ContextMenuQuadrant.Unused2;
 
         [HarmonyPatch("get_ActivationFilter")]
         [HarmonyPostfix]
         private static void ActivationFilterPostfix(ref PickableActivationFilter __result)
         {
-            __result = PickableActivationFilter.Any;
+            try
+            {
+                __result = PickableActivationFilter.Any;
+                RepeatedLogCoalescer.Flush("coupler-activation-filter");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "coupler-activation-filter",
+                    "[ca.jwsm.railroader.api.host] Coupler activation filter patch failed: " + ex);
+            }
         }
 
         [HarmonyPatch("get_TooltipInfo")]
         [HarmonyPostfix]
         private static void TooltipInfoPostfix(CouplerPickable __instance, ref TooltipInfo __result)
         {
-            var service = CouplerInteractionState.Service;
-            if (service == null || !TryCreateContext(__instance, out var context))
+            try
             {
-                return;
-            }
+                var service = CouplerInteractionState.Service;
+                if (service == null || !TryCreateContext(__instance, out var context))
+                {
+                    return;
+                }
 
-            var tooltip = new CouplerTooltipContent(__result.Title, __result.Text);
-            service.PopulateTooltip(context, tooltip);
-            __result = new TooltipInfo(tooltip.Title, tooltip.BuildText());
+                var tooltip = new CouplerTooltipContent(__result.Title, string.Empty);
+                if (TryShouldShowOpenCouplerLine(__result.Text, context, out bool showOpenCoupler) && showOpenCoupler)
+                {
+                    tooltip.AppendLine(LeftClickOpenLine);
+                }
+
+                tooltip.AppendLine(RightClickOpenLine);
+                service.PopulateTooltip(context, tooltip);
+                __result = new TooltipInfo(tooltip.Title, tooltip.BuildText());
+                RepeatedLogCoalescer.Flush("coupler-tooltip-info");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "coupler-tooltip-info",
+                    "[ca.jwsm.railroader.api.host] Coupler tooltip patch failed: " + ex);
+            }
         }
 
         [HarmonyPatch("Activate")]
         [HarmonyPrefix]
         private static bool ActivatePrefix(CouplerPickable __instance, PickableActivateEvent evt)
         {
-            if (evt.Activation != PickableActivation.Secondary)
+            try
             {
-                return true;
-            }
+                if (evt.Activation != PickableActivation.Secondary)
+                {
+                    return true;
+                }
 
-            var service = CouplerInteractionState.Service;
-            if (service == null || !TryCreateContext(__instance, out var context))
-            {
-                return true;
-            }
+                var service = CouplerInteractionState.Service;
+                if (service == null || !TryCreateContext(__instance, out var context))
+                {
+                    return true;
+                }
 
-            var menu = ContextMenuUi.Shared;
-            if (menu == null)
-            {
+                var menu = ContextMenuUi.Shared;
+                if (menu == null)
+                {
+                    return false;
+                }
+
+                if (ContextMenuUi.IsShown)
+                {
+                    menu.Hide();
+                }
+
+                menu.Clear();
+
+                var content = new CouplerMenuContent();
+                service.PopulateMenu(context, content);
+                for (int i = 0; i < content.Actions.Count; i++)
+                {
+                    AddMenuAction(menu, content.Actions[i]);
+                }
+
+                menu.Show(string.IsNullOrWhiteSpace(context.DisplayName) ? "Coupler" : context.DisplayName);
+                RepeatedLogCoalescer.Flush("coupler-activate");
                 return false;
             }
-
-            if (ContextMenuUi.IsShown)
+            catch (Exception ex)
             {
-                menu.Hide();
+                RepeatedLogCoalescer.LogWarning(
+                    "coupler-activate",
+                    "[ca.jwsm.railroader.api.host] Coupler activate patch failed: " + ex);
+                return false;
             }
-
-            menu.Clear();
-            AddToggleAction(menu, __instance);
-
-            var content = new CouplerMenuContent();
-            service.PopulateMenu(context, content);
-            for (int i = 0; i < content.Actions.Count; i++)
-            {
-                AddMenuAction(menu, content.Actions[i]);
-            }
-
-            menu.Show(string.IsNullOrWhiteSpace(context.DisplayName) ? "Coupler" : context.DisplayName);
-            return false;
         }
 
         private static bool TryCreateContext(CouplerPickable pickable, out CouplerInteractionContext context)
@@ -108,21 +152,6 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             return true;
         }
 
-        private static void AddToggleAction(ContextMenuUi menu, CouplerPickable pickable)
-        {
-            string title = pickable.isOpen ? "Close Coupler" : "Open Coupler";
-            menu.AddButton(ContextMenuQuadrant.General, title, SpriteName.Select, () =>
-            {
-                try
-                {
-                    pickable.activate?.Invoke();
-                }
-                catch
-                {
-                }
-            });
-        }
-
         private static void AddMenuAction(ContextMenuUi menu, CouplerMenuAction action)
         {
             if (menu == null || action == null)
@@ -130,9 +159,7 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                 return;
             }
 
-            var quadrant = action.Group == CouplerActionGroup.Maintenance
-                ? ContextMenuQuadrant.Brakes
-                : ContextMenuQuadrant.General;
+            var quadrant = ResolveQuadrant(action);
             var spriteName = ResolveSprite(action.Style);
 
             menu.AddButton(quadrant, action.Label, spriteName, () =>
@@ -163,6 +190,25 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
                 case CouplerActionStyle.Default:
                 default:
                     return SpriteName.Select;
+            }
+        }
+
+        private static ContextMenuQuadrant ResolveQuadrant(CouplerMenuAction action)
+        {
+            switch (action.Slot)
+            {
+                case CouplerMenuSlot.Left:
+                    return LeftSlotQuadrant;
+                case CouplerMenuSlot.Right:
+                    return RightSlotQuadrant;
+                case CouplerMenuSlot.General:
+                    return ContextMenuQuadrant.General;
+                case CouplerMenuSlot.Maintenance:
+                    return ContextMenuQuadrant.Brakes;
+                default:
+                    return action.Group == CouplerActionGroup.Maintenance
+                        ? ContextMenuQuadrant.Brakes
+                        : ContextMenuQuadrant.General;
             }
         }
 
@@ -238,6 +284,38 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             return distanceA <= distanceB ? Car.LogicalEnd.A : Car.LogicalEnd.B;
         }
 
+        private static bool TryShouldShowOpenCouplerLine(string vanillaText, CouplerInteractionContext context, out bool showOpenCoupler)
+        {
+            showOpenCoupler = false;
+            if (string.IsNullOrWhiteSpace(vanillaText))
+            {
+                return true;
+            }
+
+            var car = context?.NativeVehicle as Car;
+            if (car == null)
+            {
+                return false;
+            }
+
+            if (!System.Enum.TryParse(context.NativeLogicalEnd, out Car.LogicalEnd logicalEnd))
+            {
+                logicalEnd = context.IsFront
+                    ? (car.FrontIsA ? Car.LogicalEnd.A : Car.LogicalEnd.B)
+                    : (car.FrontIsA ? Car.LogicalEnd.B : Car.LogicalEnd.A);
+            }
+
+            try
+            {
+                showOpenCoupler = car[logicalEnd].IsCoupled;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static float GetDistanceSquared(Car car, Car.LogicalEnd logicalEnd, Vector3 target)
         {
             try
@@ -253,6 +331,78 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
             catch
             {
                 return float.MaxValue;
+            }
+        }
+
+        [HarmonyPatch(typeof(Callout), nameof(Callout.SetTooltipInfo))]
+        [HarmonyPostfix]
+        private static void CalloutSetTooltipInfoPostfix(Callout __instance)
+        {
+            try
+            {
+                var textLabel = CalloutTextLabelField?.GetValue(__instance) as TMP_Text;
+                if (textLabel == null || string.IsNullOrWhiteSpace(textLabel.text) || textLabel.text.IndexOf(RightClickLinkId, StringComparison.Ordinal) < 0)
+                {
+                    return;
+                }
+
+                textLabel.ForceMeshUpdate();
+                var textInfo = textLabel.textInfo;
+                if (textInfo == null || textInfo.linkCount <= 0)
+                {
+                    return;
+                }
+
+                bool touched = false;
+                for (int linkIndex = 0; linkIndex < textInfo.linkCount; linkIndex++)
+                {
+                    var linkInfo = textInfo.linkInfo[linkIndex];
+                    if (!string.Equals(linkInfo.GetLinkID(), RightClickLinkId, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    for (int characterOffset = 0; characterOffset < linkInfo.linkTextLength; characterOffset++)
+                    {
+                        int charIndex = linkInfo.linkTextfirstCharacterIndex + characterOffset;
+                        if (charIndex < 0 || charIndex >= textInfo.characterCount)
+                        {
+                            continue;
+                        }
+
+                        var charInfo = textInfo.characterInfo[charIndex];
+                        if (!charInfo.isVisible)
+                        {
+                            continue;
+                        }
+
+                        int materialIndex = charInfo.materialReferenceIndex;
+                        int vertexIndex = charInfo.vertexIndex;
+                        var vertices = textInfo.meshInfo[materialIndex].vertices;
+                        float centerX = (vertices[vertexIndex].x + vertices[vertexIndex + 2].x) * 0.5f;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            var vertex = vertices[vertexIndex + i];
+                            vertex.x = centerX - (vertex.x - centerX);
+                            vertices[vertexIndex + i] = vertex;
+                        }
+
+                        touched = true;
+                    }
+                }
+
+                if (touched)
+                {
+                    textLabel.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
+                }
+
+                RepeatedLogCoalescer.Flush("coupler-callout-tooltip");
+            }
+            catch (Exception ex)
+            {
+                RepeatedLogCoalescer.LogWarning(
+                    "coupler-callout-tooltip",
+                    "[ca.jwsm.railroader.api.host] Coupler callout tooltip patch failed: " + ex);
             }
         }
 

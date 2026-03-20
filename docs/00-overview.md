@@ -1,12 +1,21 @@
 # Overview
 
-`ca.jwsm.railroader.api` is a shared mod platform for Railroader. The platform goal is to keep fragile game integration in one host layer and expose stable contracts, services, and events to consumer mods.
+`ca.jwsm.railroader.api` is the shared mod platform for namespaced Railroader mods.
 
-This repository starts with a conservative architecture scaffold:
+The platform has two jobs:
 
-- `abstractions` defines shared contracts and primitives
-- `core` provides generic runtime plumbing
-- `host` composes the platform and will later own invasive game integration
-- `ui`, `trains`, `orders`, and `persistence` expose consumer-facing domains
+- centralize fragile game integration in a single host mod
+- expose stable public contracts, services, events, and provider hooks to consumer mods
 
-The current solution intentionally avoids real Railroader bindings. It exists to establish boundaries before deeper implementation begins.
+The current repository is no longer only an architecture placeholder. It now provides live host-owned integration for:
+
+- save lifecycle and mod-scoped persistence
+- train and coupler lifecycle
+- coupling attempt interception
+- solver telemetry capture
+- coupler tooltip / menu hosting
+- vanilla wear/tear state publication
+- repair-track repair progress/work publication
+- world layout lifecycle timing and asset-store hooks
+
+Consumer mods are expected to stay on the contract side of that boundary and keep gameplay-specific behavior in the mod.

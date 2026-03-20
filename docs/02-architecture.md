@@ -1,119 +1,116 @@
 # Architecture
 
-## Layer Split
+## Core Rule
 
-The solution is organized into four concerns:
+The API host owns invasive game entrypoints.
+
+Consumer mods own gameplay behavior.
+
+That boundary is the whole point of this repository.
+
+## Layer Split
 
 ### `abstractions`
 
-This is the stable contract layer. It contains:
+Stable shared contracts:
 
-- public interfaces
-- event contracts
-- diagnostics contracts
-- common IDs and result types
-
-It should remain free of invasive integration concerns.
+- API access
+- services
+- events
+- capabilities
+- diagnostics
+- shared IDs and result types
 
 ### `core`
 
-`core` contains generic runtime plumbing that is not specific to Railroader internals:
+Generic runtime plumbing:
 
-- service registration and lookup
-- event publication and subscription
-- capability registration
+- service registry
+- capability service
+- event bus
 - diagnostics fan-out
-
-`core` depends only on `abstractions`.
+- host shell
 
 ### `host`
 
-`host` is the only layer intended to interact directly with unstable game internals. It owns:
+The only layer intended to patch or adapt Railroader directly:
 
-- bootstrap
-- platform composition
-- future Harmony patching
-- future native adaptation
-
-Keeping this logic centralized means public domain contracts can stay stable even when Railroader internals change.
+- Harmony ownership
+- native object adaptation
+- translation of game state into public contracts
+- update-cycle ownership for shared services
 
 ### Domain Projects
 
-The domain projects are consumer-facing API surfaces:
+Public consumer-facing surfaces:
 
 - `ui`
 - `trains`
 - `orders`
 - `persistence`
 
-Each depends only on `abstractions`. They do not reference each other.
+These projects stay contract-only and do not own game patches.
 
-## Orders Observer Model
+## Current Shared Boundaries
 
-`orders` is where normalized AutoEngineer-style execution flow should live. The public surface now models that flow around:
+### Persistence
 
-- `OrderRequest` for submission intent
-- `ExecutionState` for normalized lifecycle progression
-- `ObserverFact` for host-observed facts such as route acceptance, blockage, arrival, coupling, and manual review
-- `ExecutionObservationState` for the host-maintained snapshot that replaces ad hoc per-mod bridge state
-- readiness gates that evaluate an order request against current observed state
+The host owns:
 
-This keeps consumer mods focused on facts and state transitions instead of arbitrary waits or mod-specific bridge code.
+- save/load/unload/delete observation
+- current save context
+- mod-scoped save data storage
 
-## DPU-Driven HUD And Control Seams
+Consumer mods own:
 
-The first DPU migration pass starts a second set of reusable seams across `ui` and `trains`:
+- what data they save
+- when they interpret or reconcile that data
 
-- `ui` owns HUD anchor identifiers and HUD context contracts for lower-left locomotive control injection
-- `trains` owns selected locomotive context, control request interception, and consist-group topology snapshots
+### Trains And Couplers
 
-These are intentionally narrow. They exist because the legacy DPU mod currently patches multiple HUD and control entry points just to express one coherent feature set.
+The host owns:
 
-## Persistence Lifecycle
+- vehicle add/remove publication
+- coupling attempt interception
+- coupling completion publication
+- brake-display availability publication
+- constraint telemetry capture
+- coupler tooltip/menu hosting
 
-The first Coupler Forces persistence pass starts moving save lifecycle ownership into `host` and public persistence contracts:
+Consumer mods own:
 
-- `persistence` now defines save lifecycle observation in addition to current save context
-- the host owns save/load/unload/application-quit observation
-- the host also provides a mod-scoped JSON data store rooted by owner id, save scope, and key
+- durability systems
+- maintenance actions
+- force models
+- HUD rendering decisions
 
-This is meant to pull per-mod save lifecycle patches out of consumer mods and leave the durability/config logic itself mod-owned.
+### Wear / Repair
 
-## Train Lifecycle And Telemetry
+The host owns:
 
-The Coupler Forces conversion also starts moving train-specific invasive hooks into `host`:
+- vanilla wear/tear option observation
+- repair-track repair progress/work publication
 
-- `host` publishes vehicle add/remove events instead of making the mod patch `TrainController` directly
-- `host` intercepts coupling attempts and exposes a mutable attempted-coupling event so consumer mods can request rejection without owning the Harmony patch
-- `host` publishes solver constraint telemetry so force-model mods can observe integration corrections without patching `IntegrationSet` themselves
-- `host` publishes brake-display availability so overlay consumers can attach without patching `TrainBrakeDisplay` discovery
-- `host` also owns coupler pickable tooltip/menu patching and delegates the actual behavior to registered coupler interaction providers
+Consumer mods own:
 
-This keeps the Coupler Forces force model and durability logic in the mod while shifting the fragile game-entry ownership into the host.
+- what wear/tear means for their system
+- how repair work affects their own durability model
 
-## Dependency Boundaries
+### World
 
-The dependency direction is deliberate:
+The host owns:
 
-- `abstractions` has no project dependencies
-- `core` depends on `abstractions`
-- each domain project depends on `abstractions`
-- `host` depends on everything it needs to compose the platform
+- world layout apply timing
+- asset-store registration hooks
+- reflection-heavy world notification bridges
 
-This keeps shared types centralized and prevents accidental coupling between public domains.
+Consumer mods own:
 
-## Why Host Is The Only Invasive Layer
+- the layout/update data they submit
+- their own world-specific authoring or gameplay logic
 
-Railroader integration will likely require patching, adaptation, and handling unstable internal types. If that logic spreads across multiple public projects or consumer mods, breakage multiplies quickly.
+## Dependency Rule
 
-Centralizing invasive behavior in `host` provides three benefits:
+The public API projects should not drift into game-specific behavior just because they carry the contracts.
 
-1. patch vanilla Railroader once
-2. normalize unstable details behind stable contracts
-3. let consumer mods work against services/events instead of internals
-
-That separation is the core design rule of this repository.
-
-The current host implementation only wires placeholder services for `orders`. Real Harmony patches and native planner/notice adaptation still belong here and are intentionally deferred.
-
-The same rule applies to the new DPU-driven seams: the contracts now exist, but live HUD/control/context/topology population still belongs in `host` and remains future work.
+If a choice is mod-specific, the host should expose a neutral hook and let the mod decide. A recent example is coupler radial-menu placement: the API host now maps generic menu slots to vanilla quadrants, while Coupler Forces decides which action goes in which slot.

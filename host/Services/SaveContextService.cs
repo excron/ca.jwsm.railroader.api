@@ -58,11 +58,19 @@ namespace Ca.Jwsm.Railroader.Api.Host.Services
 
         public void Publish(SaveLifecycleStage stage, string saveId, string displayName = null)
         {
+            Publish(stage, saveId, displayName, updateCurrent: true);
+        }
+
+        public void Publish(SaveLifecycleStage stage, string saveId, string displayName, bool updateCurrent)
+        {
             var context = CreateContext(saveId, displayName);
 
-            lock (_sync)
+            if (updateCurrent)
             {
-                _current = context;
+                lock (_sync)
+                {
+                    _current = context;
+                }
             }
 
             _events.Publish(new SaveLifecycleEvent(stage, context));

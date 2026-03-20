@@ -1,6 +1,7 @@
 using System.Reflection;
 using Ca.Jwsm.Railroader.Api.Host.Services;
 using Ca.Jwsm.Railroader.Api.Persistence.Models;
+using Game.Persistence;
 using Game.State;
 using HarmonyLib;
 
@@ -72,6 +73,19 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         }
     }
 
+    [HarmonyPatch(typeof(WorldStore), nameof(WorldStore.Clear))]
+    internal static class WorldStoreClearPatch
+    {
+        [HarmonyPostfix]
+        private static void Postfix(string saveName)
+        {
+            if (!string.IsNullOrWhiteSpace(saveName))
+            {
+                SaveLifecycle.PublishDeleted(saveName);
+            }
+        }
+    }
+
     internal static class SaveLifecycle
     {
         internal static SaveContextService Service { get; set; }
@@ -84,6 +98,11 @@ namespace Ca.Jwsm.Railroader.Api.Host.Patches
         internal static void Publish(SaveLifecycleStage stage, string saveId)
         {
             Service?.Publish(stage, saveId);
+        }
+
+        internal static void PublishDeleted(string saveId)
+        {
+            Service?.Publish(SaveLifecycleStage.Deleted, saveId, null, updateCurrent: false);
         }
     }
 }

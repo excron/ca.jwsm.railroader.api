@@ -11,5 +11,7 @@ namespace Ca.Jwsm.Railroader.Api.Persistence.Contracts
         bool TryLoad<T>(string ownerId, ModDataScope scope, ModDataKey key, out T value);
 
         void Save<T>(string ownerId, ModDataScope scope, ModDataKey key, T value);
+
+        void Delete(string ownerId, ModDataScope scope, ModDataKey key, string scopeId = null);
     }
 }

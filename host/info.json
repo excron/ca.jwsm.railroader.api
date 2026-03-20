@@ -2,7 +2,7 @@
   "Id": "ca.jwsm.railroader.api",
   "DisplayName": "Railroader API",
   "Author": "Josh St. Marie",
-  "Version": "0.1.0.1",
+  "Version": "0.1.0.2",
   "ManagerVersion": "0.27.0",
   "AssemblyName": "ca.jwsm.railroader.api.host.dll",
   "EntryMethod": "Ca.Jwsm.Railroader.Api.Host.Main.Load"

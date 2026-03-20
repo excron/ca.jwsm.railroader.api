@@ -8,6 +8,7 @@ namespace Ca.Jwsm.Railroader.Api.Persistence.Models
         Saving = 3,
         Saved = 4,
         Unloading = 5,
-        ApplicationQuitting = 6
+        ApplicationQuitting = 6,
+        Deleted = 7
     }
 }

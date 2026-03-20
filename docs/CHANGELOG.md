@@ -1,0 +1,13 @@
+# Changelog
+
+## 0.1.0.2
+
+This release continues the first real API-host migration pass and tightens host reliability.
+
+- Added coupler interaction hosting so the API owns `CouplerPickable` tooltip and context-menu patching while consumer mods register providers.
+- Added wear/tear feature publication through `IWearFeatureService` and `WearAndTearFeatureChangedEvent`.
+- Added repair-track publication through `VehicleRepairProgressedEvent` and `VehicleRepairWorkAvailableEvent`.
+- Added save-delete lifecycle publication and targeted mod-data deletion for per-save consumer data cleanup.
+- Added unload-safe host shutdown so the API detaches cleanly, clears static patch state, and unpatches Harmony on unload.
+- Added host-side repeated-log coalescing and fail-soft guards around spam-prone update and patch entry points.
+- Refined coupler menu ownership so the API host maps generic menu slots, not mod-specific `Repair` / `Replace` behavior.
