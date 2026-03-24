@@ -160,7 +160,7 @@ The host project targets `net48` and expects local Railroader / Unity Mod Manage
 
 ## Deploy
 
-The current deploy scripts live in [build/deploy-to-game.ps1](C:/Users/jsm12/OneDrive/Documents/Game_Projects/Railroader/ca.jwsm.railroader.api/build/deploy-to-game.ps1) and [build/deploy-to-game.bat](C:/Users/jsm12/OneDrive/Documents/Game_Projects/Railroader/ca.jwsm.railroader.api/build/deploy-to-game.bat).
+The current deploy scripts live in [build/deploy-to-game.ps1](build/deploy-to-game.ps1) and [build/deploy-to-game.bat](build/deploy-to-game.bat).
 
 The PowerShell deploy path currently rebuilds and installs:
 
@@ -194,4 +194,4 @@ Current host package version:
 
 - `0.1.0.2`
 
-See [docs/CHANGELOG.md](C:/Users/jsm12/OneDrive/Documents/Game_Projects/Railroader/ca.jwsm.railroader.api/docs/CHANGELOG.md) for recent API-host changes.
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for recent API-host changes.

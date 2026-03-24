@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\abstractions\ca.jwsm.railroader.api.abstractions.csproj" />
+    <ProjectReference Include="..\trains\ca.jwsm.railroader.api.trains.csproj" />
+  </ItemGroup>
+</Project>

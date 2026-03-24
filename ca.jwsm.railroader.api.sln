@@ -17,6 +17,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ca.jwsm.railroader.api.orde
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ca.jwsm.railroader.api.persistence", "persistence\ca.jwsm.railroader.api.persistence.csproj", "{1083574C-1EE2-4FD2-99F9-8D81CE4EF503}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "web", "web", "{256F4E96-6A73-9ABE-786F-840C672A50F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ca.jwsm.railroader.api.web", "web\ca.jwsm.railroader.api.web.csproj", "{C5307184-47D3-4724-99F0-CDB64A8834EC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "abstractions", "abstractions", "{67BFE618-E232-7DE5-34A1-02EE902F7C19}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "trains", "trains", "{267146BE-D3D6-A71B-E6C0-8D9B2FBAB43C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,8 +119,23 @@ Global
 		{1083574C-1EE2-4FD2-99F9-8D81CE4EF503}.Release|x64.Build.0 = Release|Any CPU
 		{1083574C-1EE2-4FD2-99F9-8D81CE4EF503}.Release|x86.ActiveCfg = Release|Any CPU
 		{1083574C-1EE2-4FD2-99F9-8D81CE4EF503}.Release|x86.Build.0 = Release|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Debug|x64.Build.0 = Debug|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Debug|x86.Build.0 = Debug|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Release|x64.ActiveCfg = Release|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Release|x64.Build.0 = Release|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Release|x86.ActiveCfg = Release|Any CPU
+		{C5307184-47D3-4724-99F0-CDB64A8834EC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C5307184-47D3-4724-99F0-CDB64A8834EC} = {256F4E96-6A73-9ABE-786F-840C672A50F4}
 	EndGlobalSection
 EndGlobal
