@@ -28,6 +28,7 @@ The installed host mod currently provides:
 - repair-track repair progress/work publication, including generic repair-work estimation for consumers
 - world layout submission and early-apply timing
 - external world asset-store registration and base-path resolution
+- web-facing graph, vehicle, locomotive-control, and virtual-client auth contracts
 - unload-safe Harmony/bootstrap cleanup
 - repeated-log coalescing for spam-prone update and patch paths
 
@@ -46,6 +47,7 @@ ca.jwsm.railroader.api/
   trains/
   orders/
   persistence/
+  web/
 ```
 
 ## Project Responsibilities
@@ -109,6 +111,15 @@ Consumer-facing persistence contracts:
 - save context
 - save lifecycle
 - mod-scoped data storage
+
+### `web`
+
+Consumer-facing browser/web contracts:
+
+- web runtime status
+- compiled map and live vehicle snapshots
+- locomotive control and control-mode requests/results
+- virtual-client auth context snapshots for Steam-backed web session projection
 
 ## Dependency Rules
 
@@ -181,6 +192,7 @@ Recent hardening work also tightened the host boundary:
 - save deletion now clears current save context when the deleted save was active
 - consumer persistence now runs through the API store only, instead of mods carrying their own fallback save pipeline
 - save-scoped mod data no longer falls back to a synthetic `default` save id when no real save context exists
+- the web domain now models browser-side locomotive control and Steam-backed virtual-client authorization without requiring vanilla networking to understand web clients
 
 It is still intentionally incomplete as a total modding platform. Some domains remain migration-stage or consumer-owned:
 
