@@ -20,6 +20,13 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             float speedMph,
             float brakePipePressurePsi,
             float brakeCylinderPressurePsi,
+            bool aeForward,
+            int aeMaxSpeedMph,
+            float? aeManualStopDistanceMeters,
+            float aeTargetSpeedMph,
+            string aePlannerStatus,
+            string aeWaypointLocationString,
+            string aeWaypointCoupleToCarId,
             DateTimeOffset? capturedAtUtc = null)
         {
             VehicleId = vehicleId;
@@ -36,6 +43,13 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             SpeedMph = speedMph;
             BrakePipePressurePsi = brakePipePressurePsi;
             BrakeCylinderPressurePsi = brakeCylinderPressurePsi;
+            AeForward = aeForward;
+            AeMaxSpeedMph = aeMaxSpeedMph;
+            AeManualStopDistanceMeters = aeManualStopDistanceMeters;
+            AeTargetSpeedMph = aeTargetSpeedMph;
+            AePlannerStatus = aePlannerStatus ?? string.Empty;
+            AeWaypointLocationString = aeWaypointLocationString ?? string.Empty;
+            AeWaypointCoupleToCarId = aeWaypointCoupleToCarId ?? string.Empty;
             CapturedAtUtc = capturedAtUtc ?? DateTimeOffset.UtcNow;
         }
 
@@ -66,6 +80,20 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
         public float BrakePipePressurePsi { get; }
 
         public float BrakeCylinderPressurePsi { get; }
+
+        public bool AeForward { get; }
+
+        public int AeMaxSpeedMph { get; }
+
+        public float? AeManualStopDistanceMeters { get; }
+
+        public float AeTargetSpeedMph { get; }
+
+        public string AePlannerStatus { get; }
+
+        public string AeWaypointLocationString { get; }
+
+        public string AeWaypointCoupleToCarId { get; }
 
         public DateTimeOffset CapturedAtUtc { get; }
     }

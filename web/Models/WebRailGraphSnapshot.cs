@@ -14,6 +14,7 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             IReadOnlyList<WebRailNodeSnapshot> nodes,
             IReadOnlyList<WebRailSegmentSnapshot> segments,
             IReadOnlyList<WebMapLabelSnapshot> labels,
+            IReadOnlyList<WebWaterFeatureSnapshot> waterFeatures,
             WebTerrainSnapshot terrain)
         {
             CapturedAtUtc = capturedAtUtc;
@@ -24,6 +25,7 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             Nodes = nodes ?? Array.Empty<WebRailNodeSnapshot>();
             Segments = segments ?? Array.Empty<WebRailSegmentSnapshot>();
             Labels = labels ?? Array.Empty<WebMapLabelSnapshot>();
+            WaterFeatures = waterFeatures ?? Array.Empty<WebWaterFeatureSnapshot>();
             Terrain = terrain;
         }
 
@@ -42,6 +44,8 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
         public IReadOnlyList<WebRailSegmentSnapshot> Segments { get; }
 
         public IReadOnlyList<WebMapLabelSnapshot> Labels { get; }
+
+        public IReadOnlyList<WebWaterFeatureSnapshot> WaterFeatures { get; }
 
         public WebTerrainSnapshot Terrain { get; }
     }

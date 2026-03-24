@@ -11,6 +11,8 @@ namespace Ca.Jwsm.Railroader.Api.Web.Contracts
 
         Result<WebVehicleMapSnapshot> GetVehicles(WebVehicleFeedRequest request);
 
+        Result<WebInfrastructureSnapshot> GetInfrastructure();
+
         Result<WebVirtualClientContextSnapshot> GetVirtualClientContext(string steamId);
 
         Result<WebLocomotiveControlSnapshot> GetLocomotiveControls(string vehicleId);
@@ -18,6 +20,10 @@ namespace Ca.Jwsm.Railroader.Api.Web.Contracts
         Result<WebLocomotiveControlResult> ApplyLocomotiveControl(string steamId, WebLocomotiveControlRequest request);
 
         Result<WebLocomotiveModeResult> ApplyLocomotiveMode(string steamId, WebLocomotiveModeRequest request);
+
+        Result<WebLocomotiveAutoEngineerResult> ApplyLocomotiveAutoEngineer(string steamId, WebLocomotiveAutoEngineerRequest request);
+
+        Result<WebSwitchToggleResult> ToggleSwitch(string steamId, WebSwitchToggleRequest request);
 
         Result<WebTrainPlacementResult> PlaceTrain(WebTrainPlacementRequest request);
     }

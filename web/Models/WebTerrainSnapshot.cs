@@ -12,7 +12,9 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             float minY,
             float maxY,
             byte[] normalizedHeights,
-            byte[] coverageMask)
+            byte[] coverageMask,
+            byte[] vegetationMask,
+            byte[] waterMask)
         {
             MinX = minX;
             MaxX = maxX;
@@ -24,6 +26,8 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             MaxY = maxY;
             NormalizedHeights = normalizedHeights ?? System.Array.Empty<byte>();
             CoverageMask = coverageMask ?? System.Array.Empty<byte>();
+            VegetationMask = vegetationMask ?? System.Array.Empty<byte>();
+            WaterMask = waterMask ?? System.Array.Empty<byte>();
         }
 
         public float MinX { get; }
@@ -45,5 +49,9 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
         public byte[] NormalizedHeights { get; }
 
         public byte[] CoverageMask { get; }
+
+        public byte[] VegetationMask { get; }
+
+        public byte[] WaterMask { get; }
     }
 }

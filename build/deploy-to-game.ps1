@@ -1,5 +1,10 @@
 param(
-    [string]$GameDir = "C:\Program Files (x86)\Steam\steamapps\common\Railroader"
+    [string]$GameDir = "C:\Program Files (x86)\Steam\steamapps\common\Railroader",
+    [switch]$IncludeCouplerForces,
+    [switch]$IncludeLocomotiveControl,
+    [switch]$IncludeMapLoader,
+    [string]$WebPublishDir = "",
+    [switch]$PublishWebProxy
 )
 
 $ErrorActionPreference = "Stop"
@@ -7,6 +12,8 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $modsRoot = Join-Path $repoRoot "..\ca.jwsm.railroader.mods"
 $modsRoot = [System.IO.Path]::GetFullPath($modsRoot)
+$webRoot = Join-Path $repoRoot "..\ca.jwsm.railroader.web"
+$webRoot = [System.IO.Path]::GetFullPath($webRoot)
 
 $apiHostProject = Join-Path $repoRoot "host\ca.jwsm.railroader.api.host.csproj"
 $apiInfoPath = Join-Path $repoRoot "host\info.json"
@@ -72,16 +79,28 @@ function Reset-InstallDir {
 }
 
 dotnet build $apiHostProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
-dotnet build $couplerProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
-dotnet build $locomotiveControlProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
 dotnet build $webViewProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
-dotnet build $mapLoaderProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
+if ($IncludeCouplerForces) {
+    dotnet build $couplerProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
+}
+if ($IncludeLocomotiveControl) {
+    dotnet build $locomotiveControlProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
+}
+if ($IncludeMapLoader) {
+    dotnet build $mapLoaderProject -c Release -p:GAME_DIR="$GameDir" | Out-Host
+}
 
 Reset-InstallDir -Path $apiInstallDir
-Reset-InstallDir -Path $couplerInstallDir -PreserveFiles @("Settings.xml")
-Reset-InstallDir -Path $locomotiveControlInstallDir
 Reset-InstallDir -Path $webViewInstallDir -PreserveFiles @("Settings.local.json")
-Reset-InstallDir -Path $mapLoaderInstallDir
+if ($IncludeCouplerForces) {
+    Reset-InstallDir -Path $couplerInstallDir -PreserveFiles @("Settings.xml")
+}
+if ($IncludeLocomotiveControl) {
+    Reset-InstallDir -Path $locomotiveControlInstallDir
+}
+if ($IncludeMapLoader) {
+    Reset-InstallDir -Path $mapLoaderInstallDir
+}
 
 if (Test-Path $legacyDpuInstallDir) {
     Remove-Item $legacyDpuInstallDir -Force -Recurse
@@ -90,12 +109,6 @@ if (Test-Path $legacyDpuInstallDir) {
 Copy-Item $apiInfoPath -Destination (Join-Path $apiInstallDir "info.json") -Force
 Get-ChildItem $apiOutputDir -File -Filter "ca.jwsm.railroader.api*.dll" | Copy-Item -Destination $apiInstallDir -Force
 Get-ChildItem $apiWebOutputDir -File -Filter "ca.jwsm.railroader.api.web*.dll" | Copy-Item -Destination $apiInstallDir -Force
-
-Copy-Item $couplerInfoPath -Destination (Join-Path $couplerInstallDir "info.json") -Force
-Copy-Item (Join-Path $couplerOutputDir "ca.jwsm.railroader.mods.couplerforces.dll") -Destination $couplerInstallDir -Force
-
-Copy-Item $locomotiveControlInfoPath -Destination (Join-Path $locomotiveControlInstallDir "info.json") -Force
-Copy-Item (Join-Path $locomotiveControlOutputDir "ca.jwsm.railroader.mods.locomotivecontrol.dll") -Destination $locomotiveControlInstallDir -Force
 
 Copy-Item $webViewInfoPath -Destination (Join-Path $webViewInstallDir "info.json") -Force
 Get-ChildItem $webViewOutputDir -File -Filter "ca.jwsm.railroader.mods.webview*.dll" | Copy-Item -Destination $webViewInstallDir -Force
@@ -107,12 +120,52 @@ if (Test-Path $webViewSettingsLocalPath) {
     Copy-Item $webViewSettingsLocalPath -Destination (Join-Path $webViewInstallDir "Settings.local.json") -Force
 }
 
-Copy-Item $mapLoaderInfoPath -Destination (Join-Path $mapLoaderInstallDir "info.json") -Force
-Get-ChildItem $mapLoaderOutputDir -File -Filter "*.dll" | Copy-Item -Destination $mapLoaderInstallDir -Force
+if ($IncludeCouplerForces) {
+    Copy-Item $couplerInfoPath -Destination (Join-Path $couplerInstallDir "info.json") -Force
+    Copy-Item (Join-Path $couplerOutputDir "ca.jwsm.railroader.mods.couplerforces.dll") -Destination $couplerInstallDir -Force
+}
+
+if ($IncludeLocomotiveControl) {
+    Copy-Item $locomotiveControlInfoPath -Destination (Join-Path $locomotiveControlInstallDir "info.json") -Force
+    Copy-Item (Join-Path $locomotiveControlOutputDir "ca.jwsm.railroader.mods.locomotivecontrol.dll") -Destination $locomotiveControlInstallDir -Force
+}
+
+if ($IncludeMapLoader) {
+    Copy-Item $mapLoaderInfoPath -Destination (Join-Path $mapLoaderInstallDir "info.json") -Force
+    Get-ChildItem $mapLoaderOutputDir -File -Filter "*.dll" | Copy-Item -Destination $mapLoaderInstallDir -Force
+}
+
+if (-not [string]::IsNullOrWhiteSpace($WebPublishDir)) {
+    if (-not (Test-Path $WebPublishDir)) {
+        throw "Web publish directory not found: $WebPublishDir"
+    }
+
+    $webPublicDir = Join-Path $webRoot "public"
+    $webFiles = @("index.php", "styles.css", "app.js")
+    if ($PublishWebProxy) {
+        $webFiles += "proxy.php"
+    }
+
+    foreach ($fileName in $webFiles) {
+        Copy-Item (Join-Path $webPublicDir $fileName) -Destination (Join-Path $WebPublishDir $fileName) -Force
+    }
+}
 
 Write-Host "Deployed API package to: $apiInstallDir"
-Write-Host "Deployed Coupler Forces package to: $couplerInstallDir"
-Write-Host "Deployed Locomotive Control package to: $locomotiveControlInstallDir"
 Write-Host "Deployed WebView package to: $webViewInstallDir"
 Write-Host "Retired legacy DPU package folder: $legacyDpuInstallDir"
-Write-Host "Deployed Map Mod Loader package to: $mapLoaderInstallDir"
+if ($IncludeCouplerForces) {
+    Write-Host "Deployed Coupler Forces package to: $couplerInstallDir"
+}
+if ($IncludeLocomotiveControl) {
+    Write-Host "Deployed Locomotive Control package to: $locomotiveControlInstallDir"
+}
+if ($IncludeMapLoader) {
+    Write-Host "Deployed Map Mod Loader package to: $mapLoaderInstallDir"
+}
+if (-not [string]::IsNullOrWhiteSpace($WebPublishDir)) {
+    Write-Host "Published web client assets to: $WebPublishDir"
+    if (-not $PublishWebProxy) {
+        Write-Host "Skipped proxy.php publish; existing server-local proxy was preserved."
+    }
+}

@@ -28,7 +28,8 @@ The installed host mod currently provides:
 - repair-track repair progress/work publication, including generic repair-work estimation for consumers
 - world layout submission and early-apply timing
 - external world asset-store registration and base-path resolution
-- web-facing graph, vehicle, locomotive-control, and virtual-client auth contracts
+- web-facing graph, vehicle, locomotive-control, auto engineer, and virtual-client auth contracts
+- web-facing switch, signal, and switch-toggle contracts
 - unload-safe Harmony/bootstrap cleanup
 - repeated-log coalescing for spam-prone update and patch paths
 
@@ -118,7 +119,10 @@ Consumer-facing browser/web contracts:
 
 - web runtime status
 - compiled map and live vehicle snapshots
+- live switch and signal snapshots
 - locomotive control and control-mode requests/results
+- auto engineer road/yard/waypoint requests, results, and live snapshot state
+- switch-toggle requests/results
 - virtual-client auth context snapshots for Steam-backed web session projection
 
 ## Dependency Rules
@@ -173,9 +177,30 @@ The host project targets `net48` and expects local Railroader / Unity Mod Manage
 
 The current deploy scripts live in [build/deploy-to-game.ps1](build/deploy-to-game.ps1) and [build/deploy-to-game.bat](build/deploy-to-game.bat).
 
-The PowerShell deploy path currently rebuilds and installs:
+The PowerShell deploy path now rebuilds and installs by default:
 
 - `ca.jwsm.railroader.api`
+- `ca.jwsm.railroader.mods.webview`
+
+It can optionally include the other in-progress mods with flags:
+
+- `-IncludeCouplerForces`
+- `-IncludeLocomotiveControl`
+- `-IncludeMapLoader`
+
+It can also optionally publish the browser client to a flat web root:
+
+- `-WebPublishDir <path>`
+- `-PublishWebProxy`
+
+Example focused deploy for the current web stack:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build\deploy-to-game.ps1 -WebPublishDir \\server\share\webroot\railroader
+```
+
+Optional packages remain available, but are no longer part of the default deploy path:
+
 - `ca.jwsm.railroader.mods.couplerforces`
 - `ca.jwsm.railroader.mods.locomotivecontrol`
 - `ca.jwsm.railroader.mods.compat.mapmodloader`
@@ -193,6 +218,7 @@ Recent hardening work also tightened the host boundary:
 - consumer persistence now runs through the API store only, instead of mods carrying their own fallback save pipeline
 - save-scoped mod data no longer falls back to a synthetic `default` save id when no real save context exists
 - the web domain now models browser-side locomotive control and Steam-backed virtual-client authorization without requiring vanilla networking to understand web clients
+- the web domain now also models browser-issued auto engineer orders, including road/yard/waypoint control and map-selected waypoints
 
 It is still intentionally incomplete as a total modding platform. Some domains remain migration-stage or consumer-owned:
 
