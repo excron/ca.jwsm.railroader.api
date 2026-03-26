@@ -27,6 +27,8 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             string aePlannerStatus,
             string aeWaypointLocationString,
             string aeWaypointCoupleToCarId,
+            float? aeWaypointX,
+            float? aeWaypointZ,
             DateTimeOffset? capturedAtUtc = null)
         {
             VehicleId = vehicleId;
@@ -50,6 +52,8 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             AePlannerStatus = aePlannerStatus ?? string.Empty;
             AeWaypointLocationString = aeWaypointLocationString ?? string.Empty;
             AeWaypointCoupleToCarId = aeWaypointCoupleToCarId ?? string.Empty;
+            AeWaypointX = aeWaypointX;
+            AeWaypointZ = aeWaypointZ;
             CapturedAtUtc = capturedAtUtc ?? DateTimeOffset.UtcNow;
         }
 
@@ -94,6 +98,10 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
         public string AeWaypointLocationString { get; }
 
         public string AeWaypointCoupleToCarId { get; }
+
+        public float? AeWaypointX { get; }
+
+        public float? AeWaypointZ { get; }
 
         public DateTimeOffset CapturedAtUtc { get; }
     }

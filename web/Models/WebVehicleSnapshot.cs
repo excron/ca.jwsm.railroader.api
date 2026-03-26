@@ -28,7 +28,8 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             float z,
             System.Collections.Generic.IReadOnlyList<WebVehiclePointSnapshot> bodyPoints,
             bool isLocomotive,
-            float velocity)
+            float velocity,
+            bool handbrakeApplied)
         {
             Id = id;
             DisplayName = displayName ?? string.Empty;
@@ -54,6 +55,7 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             BodyPoints = bodyPoints ?? System.Array.Empty<WebVehiclePointSnapshot>();
             IsLocomotive = isLocomotive;
             Velocity = velocity;
+            HandbrakeApplied = handbrakeApplied;
         }
 
         public VehicleId Id { get; }
@@ -103,5 +105,7 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
         public bool IsLocomotive { get; }
 
         public float Velocity { get; }
+
+        public bool HandbrakeApplied { get; }
     }
 }

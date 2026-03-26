@@ -13,6 +13,11 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             float bz,
             float length,
             float speedLimit,
+            float expectedSpeedLimit,
+            float averageGradePercent,
+            float minGradePercent,
+            float maxGradePercent,
+            float maxAbsGradePercent,
             string groupId,
             bool isAvailable,
             bool isGroupEnabled,
@@ -31,6 +36,11 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
             Bz = bz;
             Length = length;
             SpeedLimit = speedLimit;
+            ExpectedSpeedLimit = expectedSpeedLimit;
+            AverageGradePercent = averageGradePercent;
+            MinGradePercent = minGradePercent;
+            MaxGradePercent = maxGradePercent;
+            MaxAbsGradePercent = maxAbsGradePercent;
             GroupId = groupId ?? string.Empty;
             IsAvailable = isAvailable;
             IsGroupEnabled = isGroupEnabled;
@@ -59,6 +69,16 @@ namespace Ca.Jwsm.Railroader.Api.Web.Models
         public float Length { get; }
 
         public float SpeedLimit { get; }
+
+        public float ExpectedSpeedLimit { get; }
+
+        public float AverageGradePercent { get; }
+
+        public float MinGradePercent { get; }
+
+        public float MaxGradePercent { get; }
+
+        public float MaxAbsGradePercent { get; }
 
         public string GroupId { get; }
 
